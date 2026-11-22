@@ -1,0 +1,8 @@
+__pycache__/
+.ipynb_checkpoints/
+*.pyc
+.venv/
+# internal study notes for the group
+Udhezuesi_i_Grupit.html
+# old Tutorial 1 export, replaced by NLP_Phase1_Italian.*
+NLP_Tutorial1_Italian.*
