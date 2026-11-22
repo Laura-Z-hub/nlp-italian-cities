@@ -1,0 +1,581 @@
+{
+ "texts": 20,
+ "sentences": 236,
+ "raw_words": 5589,
+ "tokens_all": 6618,
+ "tokens_alpha": 5389,
+ "tokens_content": 2817,
+ "unique_forms": 1646,
+ "unique_lemmas": 1290,
+ "fixes": {
+  "numbers joined": 25,
+  "template leftovers removed": 1
+ },
+ "top_words": [
+  [
+   "e",
+   211
+  ],
+  [
+   "di",
+   184
+  ],
+  [
+   "la",
+   142
+  ],
+  [
+   "il",
+   138
+  ],
+  [
+   "del",
+   117
+  ],
+  [
+   "è",
+   113
+  ],
+  [
+   "della",
+   97
+  ],
+  [
+   "città",
+   94
+  ],
+  [
+   "in",
+   66
+  ],
+  [
+   "nel",
+   61
+  ]
+ ],
+ "top_lemmas": [
+  [
+   "comune",
+   49
+  ],
+  [
+   "centro",
+   45
+  ],
+  [
+   "italiano",
+   42
+  ],
+  [
+   "secolo",
+   33
+  ],
+  [
+   "italia",
+   30
+  ],
+  [
+   "capitale",
+   29
+  ],
+  [
+   "omonimo",
+   26
+  ],
+  [
+   "capoluogo",
+   25
+  ],
+  [
+   "abitante",
+   23
+  ],
+  [
+   "metropolitano",
+   21
+  ],
+  [
+   "regione",
+   21
+  ],
+  [
+   "sede",
+   19
+  ],
+  [
+   "patrimonio",
+   19
+  ],
+  [
+   "territorio",
+   19
+  ],
+  [
+   "storico",
+   17
+  ]
+ ],
+ "pos": [
+  [
+   "NOUN",
+   1281
+  ],
+  [
+   "ADP",
+   1233
+  ],
+  [
+   "ADJ",
+   826
+  ],
+  [
+   "PUNCT",
+   726
+  ],
+  [
+   "PROPN",
+   644
+  ],
+  [
+   "DET",
+   572
+  ],
+  [
+   "VERB",
+   322
+  ],
+  [
+   "CCONJ",
+   251
+  ],
+  [
+   "AUX",
+   206
+  ],
+  [
+   "ADV",
+   177
+  ],
+  [
+   "NUM",
+   166
+  ],
+  [
+   "PRON",
+   116
+  ],
+  [
+   "SCONJ",
+   16
+  ],
+  [
+   "X",
+   2
+  ]
+ ],
+ "entities": [
+  [
+   "LOC",
+   408
+  ],
+  [
+   "MISC",
+   53
+  ],
+  [
+   "PER",
+   40
+  ],
+  [
+   "ORG",
+   37
+  ]
+ ],
+ "entity_examples": {
+  "LOC": [
+   "Italia",
+   "Milano",
+   "Roma",
+   "Napoli",
+   "Europa"
+  ],
+  "ORG": [
+   "UNESCO",
+   "Unione europea",
+   "Sovrano Militare Ordine di Malta",
+   "Sebastà",
+   "Illuminismo"
+  ],
+  "PER": [
+   "Federico II",
+   "Art Nouveau",
+   "Vittorio Emanuele II",
+   "Köppen",
+   "Romolo"
+  ],
+  "MISC": [
+   "Risorgimento",
+   "Cuore della cristianità cattolica",
+   "Mediolanum",
+   "editto di",
+   "Dal XII"
+  ]
+ },
+ "per_text": [
+  {
+   "file": "text01.txt",
+   "title": "Roma",
+   "url": "https://it.wikipedia.org/wiki/Roma",
+   "words": 272,
+   "paragraphs": 4,
+   "sentences": 11
+  },
+  {
+   "file": "text02.txt",
+   "title": "Milano",
+   "url": "https://it.wikipedia.org/wiki/Milano",
+   "words": 291,
+   "paragraphs": 4,
+   "sentences": 12
+  },
+  {
+   "file": "text03.txt",
+   "title": "Napoli",
+   "url": "https://it.wikipedia.org/wiki/Napoli",
+   "words": 292,
+   "paragraphs": 6,
+   "sentences": 12
+  },
+  {
+   "file": "text04.txt",
+   "title": "Torino",
+   "url": "https://it.wikipedia.org/wiki/Torino",
+   "words": 272,
+   "paragraphs": 4,
+   "sentences": 8
+  },
+  {
+   "file": "text05.txt",
+   "title": "Palermo",
+   "url": "https://it.wikipedia.org/wiki/Palermo",
+   "words": 278,
+   "paragraphs": 4,
+   "sentences": 11
+  },
+  {
+   "file": "text06.txt",
+   "title": "Genova",
+   "url": "https://it.wikipedia.org/wiki/Genova",
+   "words": 270,
+   "paragraphs": 6,
+   "sentences": 12
+  },
+  {
+   "file": "text07.txt",
+   "title": "Bologna",
+   "url": "https://it.wikipedia.org/wiki/Bologna",
+   "words": 271,
+   "paragraphs": 5,
+   "sentences": 13
+  },
+  {
+   "file": "text08.txt",
+   "title": "Firenze",
+   "url": "https://it.wikipedia.org/wiki/Firenze",
+   "words": 248,
+   "paragraphs": 4,
+   "sentences": 10
+  },
+  {
+   "file": "text09.txt",
+   "title": "Bari",
+   "url": "https://it.wikipedia.org/wiki/Bari",
+   "words": 284,
+   "paragraphs": 8,
+   "sentences": 15
+  },
+  {
+   "file": "text10.txt",
+   "title": "Catania",
+   "url": "https://it.wikipedia.org/wiki/Catania",
+   "words": 284,
+   "paragraphs": 5,
+   "sentences": 10
+  },
+  {
+   "file": "text11.txt",
+   "title": "Venezia",
+   "url": "https://it.wikipedia.org/wiki/Venezia",
+   "words": 297,
+   "paragraphs": 6,
+   "sentences": 13
+  },
+  {
+   "file": "text12.txt",
+   "title": "Verona",
+   "url": "https://it.wikipedia.org/wiki/Verona",
+   "words": 268,
+   "paragraphs": 4,
+   "sentences": 11
+  },
+  {
+   "file": "text13.txt",
+   "title": "Messina",
+   "url": "https://it.wikipedia.org/wiki/Messina",
+   "words": 288,
+   "paragraphs": 4,
+   "sentences": 13
+  },
+  {
+   "file": "text14.txt",
+   "title": "Padova",
+   "url": "https://it.wikipedia.org/wiki/Padova",
+   "words": 286,
+   "paragraphs": 6,
+   "sentences": 12
+  },
+  {
+   "file": "text15.txt",
+   "title": "Trieste",
+   "url": "https://it.wikipedia.org/wiki/Trieste",
+   "words": 271,
+   "paragraphs": 6,
+   "sentences": 12
+  },
+  {
+   "file": "text16.txt",
+   "title": "Brescia",
+   "url": "https://it.wikipedia.org/wiki/Brescia",
+   "words": 286,
+   "paragraphs": 5,
+   "sentences": 12
+  },
+  {
+   "file": "text17.txt",
+   "title": "Parma",
+   "url": "https://it.wikipedia.org/wiki/Parma",
+   "words": 282,
+   "paragraphs": 5,
+   "sentences": 14
+  },
+  {
+   "file": "text18.txt",
+   "title": "Taranto",
+   "url": "https://it.wikipedia.org/wiki/Taranto",
+   "words": 259,
+   "paragraphs": 4,
+   "sentences": 9
+  },
+  {
+   "file": "text19.txt",
+   "title": "Modena",
+   "url": "https://it.wikipedia.org/wiki/Modena",
+   "words": 300,
+   "paragraphs": 5,
+   "sentences": 15
+  },
+  {
+   "file": "text20.txt",
+   "title": "Reggio Calabria",
+   "url": "https://it.wikipedia.org/wiki/Reggio_Calabria",
+   "words": 290,
+   "paragraphs": 6,
+   "sentences": 11
+  }
+ ],
+ "example": {
+  "raw": "Roma è un comune italiano di 2 743 357 abitanti, capoluogo dell'omonima città metropolitana e della regione Lazio, nonché capitale della Repubblica Italiana.",
+  "clean": "Roma è un comune italiano di 2743357 abitanti, capoluogo dell'omonima città metropolitana e della regione Lazio, nonché capitale della Repubblica Italiana.",
+  "tokens": [
+   {
+    "text": "Roma",
+    "lemma": "Roma",
+    "pos": "PROPN",
+    "stop": false,
+    "alpha": true
+   },
+   {
+    "text": "è",
+    "lemma": "essere",
+    "pos": "AUX",
+    "stop": true,
+    "alpha": true
+   },
+   {
+    "text": "un",
+    "lemma": "uno",
+    "pos": "DET",
+    "stop": true,
+    "alpha": true
+   },
+   {
+    "text": "comune",
+    "lemma": "comune",
+    "pos": "ADJ",
+    "stop": false,
+    "alpha": true
+   },
+   {
+    "text": "italiano",
+    "lemma": "italiano",
+    "pos": "ADJ",
+    "stop": false,
+    "alpha": true
+   },
+   {
+    "text": "di",
+    "lemma": "di",
+    "pos": "ADP",
+    "stop": true,
+    "alpha": true
+   },
+   {
+    "text": "2743357",
+    "lemma": "2743357",
+    "pos": "NUM",
+    "stop": false,
+    "alpha": false
+   },
+   {
+    "text": "abitanti",
+    "lemma": "abitante",
+    "pos": "NOUN",
+    "stop": false,
+    "alpha": true
+   },
+   {
+    "text": ",",
+    "lemma": ",",
+    "pos": "PUNCT",
+    "stop": false,
+    "alpha": false
+   },
+   {
+    "text": "capoluogo",
+    "lemma": "capoluogo",
+    "pos": "NOUN",
+    "stop": false,
+    "alpha": true
+   },
+   {
+    "text": "dell'",
+    "lemma": "di il",
+    "pos": "ADP",
+    "stop": true,
+    "alpha": false
+   },
+   {
+    "text": "omonima",
+    "lemma": "omonimo",
+    "pos": "ADJ",
+    "stop": false,
+    "alpha": true
+   },
+   {
+    "text": "città",
+    "lemma": "città",
+    "pos": "NOUN",
+    "stop": true,
+    "alpha": true
+   },
+   {
+    "text": "metropolitana",
+    "lemma": "metropolitano",
+    "pos": "ADJ",
+    "stop": false,
+    "alpha": true
+   },
+   {
+    "text": "e",
+    "lemma": "e",
+    "pos": "CCONJ",
+    "stop": true,
+    "alpha": true
+   },
+   {
+    "text": "della",
+    "lemma": "di il",
+    "pos": "ADP",
+    "stop": true,
+    "alpha": true
+   },
+   {
+    "text": "regione",
+    "lemma": "regione",
+    "pos": "NOUN",
+    "stop": false,
+    "alpha": true
+   },
+   {
+    "text": "Lazio",
+    "lemma": "Lazio",
+    "pos": "PROPN",
+    "stop": false,
+    "alpha": true
+   },
+   {
+    "text": ",",
+    "lemma": ",",
+    "pos": "PUNCT",
+    "stop": false,
+    "alpha": false
+   },
+   {
+    "text": "nonché",
+    "lemma": "nonché",
+    "pos": "CCONJ",
+    "stop": false,
+    "alpha": true
+   },
+   {
+    "text": "capitale",
+    "lemma": "capitale",
+    "pos": "NOUN",
+    "stop": false,
+    "alpha": true
+   },
+   {
+    "text": "della",
+    "lemma": "di il",
+    "pos": "ADP",
+    "stop": true,
+    "alpha": true
+   },
+   {
+    "text": "Repubblica",
+    "lemma": "Repubblica",
+    "pos": "NOUN",
+    "stop": false,
+    "alpha": true
+   },
+   {
+    "text": "Italiana",
+    "lemma": "italiano",
+    "pos": "ADJ",
+    "stop": false,
+    "alpha": true
+   },
+   {
+    "text": ".",
+    "lemma": ".",
+    "pos": "PUNCT",
+    "stop": false,
+    "alpha": false
+   }
+  ],
+  "raw_tokens": [
+   "Roma",
+   "è",
+   "un",
+   "comune",
+   "italiano",
+   "di",
+   "2",
+   "743",
+   "357",
+   "abitanti",
+   ",",
+   "capoluogo"
+  ]
+ }
+}
