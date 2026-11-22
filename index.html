@@ -3,287 +3,396 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Italian Cities Corpus</title>
+<title>Italian Cities NLP</title>
 <meta name="description" content="NLP project, phase 1: corpus, preprocessing and application area (Group 5, Italian).">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-/* Layout: one slide per section, full viewport height, a single reading column.
-   Arrow keys / PageDown / Space move between slides. Works offline (no external files). */
+/* Slide deck: every slide is a fixed 1600x900 canvas, scaled to fit the window (projector-safe).
+   Below 760px wide the deck switches to "flow" mode: slides stack and the page scrolls.
+   Fonts come from Google Fonts; offline they fall back to Georgia / Segoe UI. */
 :root{
-  --bg:#f7f6f2; --surface:#ffffff; --fg:#1b1f1d; --muted:#5d6661; --faint:#8a928d; --line:#dfe2dc;
-  --accent:#0f6b4f; --accent-soft:#e2efe9; --warm:#b5452b; --warm-soft:#f7e6e0;
-  --bar:#1d7a5c; --bar-track:#edf0ec; --code:#eef1ed;
-  --ok:#1f7a3a; --ok-soft:#e4f2e7; --bad:#a8321d; --bad-soft:#f9e5e0;
-  --f-sans: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
-  --f-mono: "Cascadia Mono", Consolas, ui-monospace, "SF Mono", Menlo, monospace;
+  --paper:#f5f0e6; --paper-2:#ece5d6; --card:#fffdf8; --ink:#1a2420; --ink-2:#4b5752; --ink-3:#7f8a85; --rule:#ddd4c3;
+  --green:#1d6b50; --green-2:#2f8a68; --green-soft:#dcebe2; --terra:#c0532f; --terra-soft:#f6e1d6; --gold:#c99a3b;
+  --night:#0d2a22; --night-2:#123a2f; --on-night:#f3ede0; --on-night-2:#b8c7bf;
+  --serif:"Fraunces", Georgia, "Times New Roman", serif;
+  --sans:"Inter", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --mono:"JetBrains Mono", "Cascadia Mono", Consolas, ui-monospace, monospace;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#121614; --surface:#1a201d; --fg:#e6ebe8; --muted:#a3ada8; --faint:#78827d; --line:#2c3531;
-  --accent:#5ccaa2; --accent-soft:#183129; --warm:#ee8a6f; --warm-soft:#3a221b;
-  --bar:#4fb891; --bar-track:#232b27; --code:#222a26;
-  --ok:#73d18f; --ok-soft:#183020; --bad:#f2907a; --bad-soft:#3a201a; color-scheme:dark }}
-:root[data-theme="dark"]{
-  --bg:#121614; --surface:#1a201d; --fg:#e6ebe8; --muted:#a3ada8; --faint:#78827d; --line:#2c3531;
-  --accent:#5ccaa2; --accent-soft:#183129; --warm:#ee8a6f; --warm-soft:#3a221b;
-  --bar:#4fb891; --bar-track:#232b27; --code:#222a26;
-  --ok:#73d18f; --ok-soft:#183020; --bad:#f2907a; --bad-soft:#3a201a; color-scheme:dark }
-
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-sans);font-size:17px;line-height:1.6}
-.slide{min-height:100vh;padding:72px max(16px,env(safe-area-inset-left,0px)) 72px;border-bottom:1px solid var(--line);display:flex;align-items:center}
-.inner{width:100%;max-width:1060px;margin:0 auto;min-width:0}
-.kicker{font-family:var(--f-mono);font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
-h1{font-size:clamp(36px,6vw,64px);line-height:1.05;margin:0 0 18px;letter-spacing:-.02em;text-wrap:balance}
-h2{font-size:clamp(28px,4vw,40px);line-height:1.15;margin:0 0 14px;letter-spacing:-.01em;text-wrap:balance}
-h3{font-size:18px;margin:26px 0 10px}
-p{margin:0 0 14px;max-width:70ch}
-.lead{font-size:clamp(18px,2.2vw,22px);color:var(--muted);max-width:60ch}
-.muted{color:var(--muted)}
-a{color:var(--accent)}
-code{font-family:var(--f-mono);font-size:.86em;background:var(--code);padding:1px 6px;border-radius:4px}
-.flag{display:flex;height:6px;width:120px;border-radius:3px;overflow:hidden;margin-bottom:28px}
-.flag i{flex:1}.flag i:nth-child(1){background:#1f8a4c}.flag i:nth-child(2){background:#f4f4f0;border-block:1px solid var(--line)}.flag i:nth-child(3){background:#c8352b}
-.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
-.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 20px;min-width:0}
-.card h3{margin-top:0}
-.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:26px 0}
-.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
-.stat b{display:block;font-size:clamp(26px,3.4vw,38px);line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-.stat span{font-size:14px;color:var(--muted)}
-.agenda{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:0;margin:26px 0 0;list-style:none;counter-reset:a}
-.agenda li{counter-increment:a;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:15px}
-.agenda li::before{content:counter(a,decimal-leading-zero);display:block;font-family:var(--f-mono);font-size:12px;color:var(--accent)}
-.agenda a{color:var(--fg);text-decoration:none}.agenda a:hover{color:var(--accent)}
+html,body{margin:0;height:100%}
+body{background:#08110e;color:var(--ink);font-family:var(--sans);overflow:hidden;-webkit-font-smoothing:antialiased}
+.stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform:translate(-50%,-50%) scale(var(--s,1));transform-origin:center;overflow:hidden;border-radius:4px;box-shadow:0 30px 80px rgba(0,0,0,.45)}
 
-/* bar lists */
-.bars{display:grid;gap:4px;margin:8px 0}
-.bar{display:grid;grid-template-columns:var(--lab,130px) minmax(0,1fr) 52px;align-items:center;gap:10px;font-size:14px;padding:2px 0;border-radius:4px}
-.bar:hover{background:var(--accent-soft)}
+/* ---------- slides ---------- */
+.slide{position:absolute;inset:0;padding:84px 110px 96px;background:var(--paper);opacity:0;visibility:hidden;transform:translateX(40px);transition:opacity .55s ease, transform .65s cubic-bezier(.2,.7,.2,1), visibility 0s .6s;overflow:hidden}
+.slide{display:flex;flex-direction:column;justify-content:center}
+.slide > *{flex-shrink:0}
+.slide > .title-wrap,.slide > .end,.slide > .g2[style*="height:100%"]{flex:1;height:auto!important}
+.flow .slide{display:block}
+.slide.on{opacity:1;visibility:visible;transform:none;transition:opacity .55s ease, transform .65s cubic-bezier(.2,.7,.2,1)}
+.slide.back{transform:translateX(-40px)}
+.slide.dark{background:radial-gradient(1200px 700px at 85% 20%, #1b4d3e 0%, transparent 60%), radial-gradient(900px 600px at 0% 100%, #2a1f14 0%, transparent 55%), var(--night);color:var(--on-night)}
+.slide::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;background-image:radial-gradient(rgba(0,0,0,.035) 1px, transparent 1px);background-size:22px 22px}
+.slide.dark::before{background-image:radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px)}
+.rise{opacity:0;transform:translateY(22px);transition:opacity .7s ease, transform .8s cubic-bezier(.2,.7,.2,1);transition-delay:calc(var(--d,0) * 90ms + 150ms)}
+.on .rise{opacity:1;transform:none}
+
+.eyebrow{font-family:var(--mono);font-size:17px;letter-spacing:.14em;text-transform:uppercase;color:var(--terra);margin:0 0 18px;display:flex;align-items:center;gap:14px}
+.eyebrow::before{content:"";width:36px;height:2px;background:currentColor}
+.dark .eyebrow{color:var(--gold)}
+h1{font-family:var(--serif);font-weight:600;font-size:104px;line-height:.98;letter-spacing:-.025em;margin:0}
+h2{font-family:var(--serif);font-weight:600;font-size:60px;line-height:1.05;letter-spacing:-.02em;margin:0 0 14px;max-width:1250px}
+h2 em,h1 em{font-style:italic;color:var(--terra);font-weight:400}
+.dark h1 em,.dark h2 em{color:var(--gold)}
+h3{font-family:var(--serif);font-weight:600;font-size:28px;margin:0 0 12px;letter-spacing:-.01em}
+p{margin:0}
+.sub{font-size:25px;line-height:1.5;color:var(--ink-2);max-width:1100px}
+.dark .sub{color:var(--on-night-2)}
+code,.mono{font-family:var(--mono);font-size:.82em}
+code{background:var(--paper-2);padding:2px 8px;border-radius:6px}
+.dark code{background:rgba(255,255,255,.08)}
+.muted{color:var(--ink-3)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:56px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:20px;padding:28px 30px;box-shadow:0 1px 0 rgba(0,0,0,.02), 0 12px 30px -18px rgba(40,30,10,.25)}
+.dark .card{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);box-shadow:none}
+.card p{font-size:20px;line-height:1.5;color:var(--ink-2)}
+.dark .card p{color:var(--on-night-2)}
+.slide-foot{position:absolute;left:110px;right:110px;bottom:36px;display:flex;justify-content:space-between;font-family:var(--mono);font-size:14px;color:var(--ink-3);letter-spacing:.06em}
+.dark .slide-foot{color:rgba(243,237,224,.45)}
+.flag{display:inline-flex;height:8px;width:96px;border-radius:4px;overflow:hidden}
+.flag i{flex:1}.flag i:nth-child(1){background:#1f8a4c}.flag i:nth-child(2){background:#f4f1ea}.flag i:nth-child(3){background:#ce3b2e}
+
+/* ---------- title ---------- */
+.title-wrap{display:grid;grid-template-columns:1.25fr 1fr;height:100%;align-items:center;gap:40px}
+.title-wrap .sub{margin-top:32px;font-size:27px;max-width:760px}
+.meta{display:flex;gap:28px;margin-top:46px;font-family:var(--mono);font-size:17px;color:var(--on-night-2);letter-spacing:.04em}
+.meta b{display:block;color:var(--on-night);font-family:var(--sans);font-size:21px;font-weight:600;letter-spacing:0;margin-top:4px}
+#map{width:100%;height:760px;overflow:visible}
+#map .city circle.core{fill:var(--gold)}
+#map .city circle.halo{fill:var(--gold);opacity:.18}
+#map .city text{fill:var(--on-night);font-family:var(--sans);font-size:.24px;font-weight:500}
+#map .city.minor text{display:none}
+#map .city:hover text{display:block;fill:var(--gold)}
+#map .link{stroke:rgba(201,154,59,.22);stroke-width:.025;fill:none}
+#map .city{opacity:0;transition:opacity .5s ease;transition-delay:calc(var(--i) * 60ms + 400ms)}
+.on #map .city{opacity:1}
+
+/* ---------- big numbers ---------- */
+.bignum{font-family:var(--serif);font-weight:600;font-size:92px;line-height:1;letter-spacing:-.03em;color:var(--green);font-variant-numeric:lining-nums tabular-nums}
+.bignum.t{color:var(--terra)}
+.biglab{font-size:20px;color:var(--ink-2);margin-top:10px}
+.statrow{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;margin-top:48px}
+.statrow .card{padding:26px 28px}
+
+/* ---------- process steps ---------- */
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-top:52px;position:relative}
+.steps::before{content:"";position:absolute;left:40px;right:40px;top:40px;height:2px;background:repeating-linear-gradient(90deg,var(--rule) 0 10px,transparent 10px 18px)}
+.step{position:relative}
+.step .dot{width:80px;height:80px;border-radius:50%;background:var(--card);border:2px solid var(--green);display:grid;place-items:center;font-family:var(--serif);font-size:34px;font-weight:600;color:var(--green);margin-bottom:22px;position:relative;z-index:1}
+.step:nth-child(odd) .dot{border-color:var(--terra);color:var(--terra)}
+.step h3{font-size:27px}
+.step ul{list-style:none;padding:0;margin:0;font-size:19px;line-height:1.55;color:var(--ink-2)}
+.step li::before{content:"· ";color:var(--ink-3)}
+.collect{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:46px}
+.collect .card{position:relative;padding-top:64px}
+.collect .n{position:absolute;top:22px;left:30px;font-family:var(--mono);font-size:16px;color:var(--terra);letter-spacing:.1em}
+.collect h3{font-size:26px}
+
+/* ---------- bars ---------- */
+.bars{display:grid;gap:7px}
+.bar{display:grid;grid-template-columns:var(--lab,170px) 1fr 70px;align-items:center;gap:16px;font-size:19px;padding:2px 6px;border-radius:6px;cursor:default}
+.bar:hover{background:var(--green-soft)}
 .bar .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bar .t{height:14px;background:var(--bar-track);border-radius:0 4px 4px 0;position:relative}
-.bar .f{position:absolute;inset:0 auto 0 0;background:var(--bar);border-radius:0 4px 4px 0;min-width:2px}
-.bar .v{font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums;text-align:right;color:var(--muted)}
-.bars.big .bar{font-size:15px}.bars.big .t{height:22px}
-#tip{position:fixed;pointer-events:none;z-index:9;background:var(--fg);color:var(--bg);font-size:13px;line-height:1.4;padding:7px 10px;border-radius:6px;max-width:260px;opacity:0;transition:opacity .1s}
+.bar .t{height:var(--h,16px);background:var(--paper-2);border-radius:0 6px 6px 0;position:relative;overflow:hidden}
+.bar .f{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--green),var(--green-2));border-radius:0 6px 6px 0;width:0;transition:width 1.1s cubic-bezier(.2,.7,.2,1);transition-delay:calc(var(--i) * 40ms + 250ms)}
+.bars.terra .f{background:linear-gradient(90deg,#a9432a,var(--terra))}
+.on .bar .f{width:var(--w)}
+.bar .v{font-family:var(--mono);font-size:17px;text-align:right;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.bars.compact .bar{font-size:16px;gap:12px;padding:0 6px}.bars.compact{gap:3px}.bars.compact .v{font-size:15px}
+.bars.big .bar{font-size:22px}.bars.big{gap:14px}
+.chart-title{font-family:var(--mono);font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin:0 0 18px}
+#tip{position:fixed;pointer-events:none;z-index:99;background:#14201b;color:#f3ede0;font-size:14px;line-height:1.45;padding:9px 12px;border-radius:8px;max-width:280px;opacity:0;transition:opacity .12s;box-shadow:0 10px 30px rgba(0,0,0,.3)}
 
-/* pipeline */
-.pipe{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:22px 0;counter-reset:p}
-.step{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--accent);border-radius:8px;padding:12px 14px;font-size:14px;position:relative;counter-increment:p}
-.step b{display:block;font-size:15px;margin-bottom:4px}
-.step b::before{content:counter(p) ". ";color:var(--accent)}
-.step ul{margin:0;padding-left:16px;color:var(--muted)}
-.step:not(:last-child)::after{content:"→";position:absolute;right:-12px;top:44%;color:var(--faint);font-size:16px}
+/* ---------- funnel ---------- */
+.funnel{display:grid;gap:14px;margin-top:10px}
+.fz{display:grid;grid-template-columns:1fr 150px;align-items:center;gap:22px}
+.fz .band{height:74px;border-radius:14px;background:linear-gradient(90deg,var(--green),var(--green-2));display:flex;align-items:center;padding:0 24px;color:#fff;font-size:21px;font-weight:500;width:0;transition:width 1.1s cubic-bezier(.2,.7,.2,1);transition-delay:calc(var(--i) * 160ms + 300ms);white-space:nowrap;overflow:hidden}
+.fz.t .band{background:linear-gradient(90deg,#a9432a,var(--terra))}
+.on .fz .band{width:var(--w)}
+.fz .num{font-family:var(--serif);font-size:44px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.callout{border-left:4px solid var(--terra);background:var(--terra-soft);border-radius:0 14px 14px 0;padding:18px 24px;font-size:21px;line-height:1.5}
+.ba{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:22px}
+.ba .chip{font-family:var(--mono);font-size:21px;padding:6px 14px;border-radius:10px;background:var(--card);border:1px solid var(--rule)}
+.ba .chip.bad{background:var(--terra-soft);border-color:#e7b9a6}
+.ba .chip.good{background:var(--green-soft);border-color:#a9cdb9}
 
-/* tokens */
-.toks{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
-.tok{display:inline-flex;flex-direction:column;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:4px 8px;font-size:15px;line-height:1.25}
-.tok small{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
-.tok.keep{border-color:var(--accent);background:var(--accent-soft)}
-.tok.stop{color:var(--faint);text-decoration:line-through;text-decoration-color:var(--faint)}
-.tok.punct{color:var(--faint);border-style:dashed}
-.tok.bad{border-color:var(--warm);background:var(--warm-soft)}
-.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted)}
-.legend span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:1px solid var(--line)}
-.legend .k::before{background:var(--accent-soft);border-color:var(--accent)}
-.legend .s::before{background:var(--surface)}
-.legend .p::before{border-style:dashed}
-.before-after{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
-.ba{border-radius:8px;padding:12px 14px;font-size:15px}
-.ba.x{background:var(--bad-soft)}.ba.y{background:var(--ok-soft)}
-.ba b{display:block;font-size:12px;font-family:var(--f-mono);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+/* ---------- tokens ---------- */
+.sentence{font-family:var(--serif);font-size:34px;line-height:1.4;font-style:italic;color:var(--ink);max-width:1350px;margin:6px 0 30px}
+.toks{display:flex;flex-wrap:wrap;gap:10px}
+.tok{display:inline-flex;flex-direction:column;align-items:center;border:1.5px solid var(--rule);background:var(--card);border-radius:12px;padding:8px 14px 6px;font-size:23px;line-height:1.2;opacity:0;transform:translateY(10px) scale(.96);transition:opacity .4s, transform .5s cubic-bezier(.2,.7,.2,1);transition-delay:calc(var(--i) * 45ms + 300ms)}
+.on .tok{opacity:1;transform:none}
+.tok small{font-family:var(--mono);font-size:13px;color:var(--ink-3);margin-top:3px}
+.tok.keep{border-color:var(--green);background:var(--green-soft)}
+.tok.keep small{color:var(--green);font-weight:600}
+.tok.stop{color:var(--ink-3);text-decoration:line-through;text-decoration-color:var(--terra);text-decoration-thickness:2px}
+.tok.punct{color:var(--ink-3);border-style:dashed}
+.legend{display:flex;gap:28px;font-size:18px;color:var(--ink-2);margin:0 0 18px}
+.legend span{display:inline-flex;align-items:center;gap:10px}
+.legend i{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--rule);background:var(--card)}
+.legend .k i{background:var(--green-soft);border-color:var(--green)}
+.legend .p i{border-style:dashed}
+.result{margin-top:30px;background:var(--night);color:var(--on-night);border-radius:16px;padding:20px 26px;font-family:var(--mono);font-size:20px;line-height:1.6}
+.result b{color:var(--gold);font-weight:600;margin-right:12px}
 
-/* tables */
-.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:14px 0}
-table{border-collapse:collapse;width:100%;font-size:14.5px}
-th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
-tr:last-child td{border-bottom:none}
-th{font-weight:600;font-size:13px;color:var(--muted);background:var(--bg)}
-td.ok{color:var(--ok)}td.no{color:var(--bad)}
-.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--f-mono)}
+/* ---------- dependency ---------- */
+.tabs{display:flex;gap:12px;margin:26px 0 20px}
+.tabs button,.qchip{font:inherit;font-size:19px;border:1.5px solid var(--rule);background:var(--card);color:var(--ink);padding:10px 22px;border-radius:999px;cursor:pointer;transition:all .2s}
+.tabs button:hover,.qchip:hover{border-color:var(--green)}
+.tabs button[aria-selected="true"]{background:var(--green);border-color:var(--green);color:#fff}
+button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.dep{overflow-x:auto;overflow-y:hidden;border:1px solid var(--rule);border-radius:18px;background:var(--card);padding:0 10px;height:330px}
+.dep svg{color:var(--ink)!important;background:transparent!important;display:block;margin-top:-40px}
+.verdict{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.verdict div{border-radius:14px;padding:16px 20px;font-size:19px;line-height:1.5}
+.verdict .y{background:var(--green-soft)}.verdict .x{background:var(--terra-soft)}
+.verdict b.mk{font-size:15px;font-family:var(--mono);letter-spacing:.08em;display:block;margin-bottom:4px}
+.verdict .y b.mk{color:var(--green)}.verdict .x b.mk{color:var(--terra)}
+.dep-sent{font-family:var(--serif);font-style:italic;font-size:23px;color:var(--ink-2);margin-bottom:16px;line-height:1.45}
 
-/* dependency trees */
-.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 10px}
-.tabs button,.chip{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:6px 14px;border-radius:999px;cursor:pointer}
-.tabs button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--bg)}
-.tabs button:focus-visible,.chip:focus-visible,input:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.dep{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:6px}
-.dep svg{color:var(--fg)!important;background:transparent!important;display:block}
-.verdict{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
-.verdict div{border-radius:8px;padding:10px 14px;font-size:15px}
-.verdict .y{background:var(--ok-soft)}.verdict .x{background:var(--bad-soft)}
-.sent{font-style:italic;color:var(--muted)}
+/* ---------- quality ---------- */
+.qgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:36px}
+.qcard{background:var(--card);border:1px solid var(--rule);border-radius:18px;padding:22px 24px;position:relative;overflow:hidden}
+.qcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--green)}
+.qcard.open::before{background:var(--terra)}
+.qcard .tag{font-family:var(--mono);font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--green);font-weight:600}
+.qcard.open .tag{color:var(--terra)}
+.qcard h3{font-family:var(--sans);font-size:21px;font-weight:600;margin:8px 0 8px;line-height:1.3}
+.qcard p{font-size:17px;line-height:1.5;color:var(--ink-2)}
 
-/* search demo */
-.search{display:flex;gap:10px;margin:16px 0 10px}
-.search input{flex:1;min-width:0;font:inherit;font-size:18px;padding:12px 16px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg)}
-.btn{font:inherit;font-weight:600;border:0;background:var(--accent);color:var(--bg);padding:0 22px;border-radius:10px;cursor:pointer}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.qtrace{font-size:14px;color:var(--muted);margin:14px 0 6px;min-height:22px}
-.qtrace code{margin-right:4px}
-.results{display:grid;gap:10px;margin-top:6px}
-.res{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
-.res header{display:flex;justify-content:space-between;gap:10px;font-size:14px;color:var(--muted);margin-bottom:4px}
-.res header b{color:var(--fg);font-size:15px}
-.res mark{background:var(--warm-soft);color:inherit;border-radius:3px;padding:0 2px}
-.empty{color:var(--muted);font-style:italic}
+/* ---------- search ---------- */
+.searchbox{display:flex;gap:14px;margin-top:26px}
+.searchbox input{flex:1;min-width:0;font:inherit;font-size:26px;padding:18px 26px;border-radius:16px;border:1.5px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:var(--on-night)}
+.searchbox input::placeholder{color:rgba(243,237,224,.45)}
+.searchbox button{font:inherit;font-size:22px;font-weight:600;border:0;background:var(--gold);color:#1b1408;padding:0 36px;border-radius:16px;cursor:pointer}
+.qchips{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.dark .qchip{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16);color:var(--on-night);font-size:17px;padding:8px 18px}
+.dark .qchip:hover{border-color:var(--gold)}
+.trace{margin:22px 0 14px;font-size:17px;color:var(--on-night-2);min-height:30px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.trace code{font-size:15px;color:var(--on-night)}
+.trace code.s{text-decoration:line-through;opacity:.5}
+.results{display:grid;gap:12px}
+.res{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:16px 22px;display:grid;grid-template-columns:150px 1fr 110px;gap:20px;align-items:center;animation:pop .45s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i) * 70ms)}
+@keyframes pop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.res .city{font-family:var(--serif);font-size:26px;font-weight:600;color:var(--gold)}
+.res .txt{font-size:19px;line-height:1.5}
+.res .sc{text-align:right;font-family:var(--mono);font-size:15px;color:var(--on-night-2)}
+.res .sc a{color:var(--on-night-2)}
+.res .meter{height:5px;border-radius:3px;background:rgba(255,255,255,.1);margin-top:6px;overflow:hidden}
+.res .meter i{display:block;height:100%;background:var(--gold)}
+.res mark{background:rgba(201,154,59,.3);color:inherit;border-radius:4px;padding:0 3px}
+.how{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px}
+.how div{border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px 18px;font-size:17px;line-height:1.45;color:var(--on-night-2)}
+.how b{color:var(--on-night);display:block;font-size:18px;margin-bottom:2px}
 
-.check{list-style:none;padding:0;margin:14px 0;display:grid;gap:8px}
-.check li{padding-left:30px;position:relative}
-.check li::before{content:"✓";position:absolute;left:0;top:0;width:20px;height:20px;border-radius:50%;background:var(--ok-soft);color:var(--ok);font-size:13px;display:grid;place-items:center;font-weight:700}
-.check li.todo::before{content:"→";background:var(--accent-soft);color:var(--accent)}
-.files{font-family:var(--f-mono);font-size:14px;line-height:1.8}
-.files span{color:var(--muted);font-family:var(--f-sans)}
+/* ---------- next ---------- */
+.check{list-style:none;padding:0;margin:0;display:grid;gap:14px}
+.check li{font-size:21px;line-height:1.45;padding-left:46px;position:relative;color:var(--ink-2)}
+.check li::before{content:"✓";position:absolute;left:0;top:-1px;width:30px;height:30px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-size:16px;font-weight:700}
+.check.todo li::before{content:"→";background:var(--terra-soft);color:var(--terra)}
+.files{font-family:var(--mono);font-size:17px;line-height:2.05}
+.files span{font-family:var(--sans);color:var(--ink-3);font-size:16px;margin-left:8px}
+.repo{display:inline-flex;align-items:center;gap:12px;background:var(--night);color:var(--on-night);border-radius:14px;padding:14px 22px;font-family:var(--mono);font-size:18px;text-decoration:none;margin-bottom:22px}
+.repo::before{content:"⌥";color:var(--gold)}
 
-nav.dots{position:fixed;right:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:9px;z-index:5}
-nav.dots a{width:10px;height:10px;border-radius:50%;background:var(--line);display:block}
-nav.dots a.on{background:var(--accent);transform:scale(1.25)}
-.theme{position:fixed;right:16px;top:14px;z-index:6;font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:5px 12px;cursor:pointer}
+/* ---------- end ---------- */
+.end{height:100%;display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
+.end h1{font-size:150px}
 
-@media (max-width:860px){
-  .grid2,.before-after,.verdict{grid-template-columns:minmax(0,1fr)}
-  .grid3,.agenda{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .pipe{grid-template-columns:minmax(0,1fr)}
-  .step:not(:last-child)::after{content:"↓";right:auto;left:50%;top:auto;bottom:-17px}
-  nav.dots{display:none}
-  .slide{min-height:auto;padding-block:56px}
-}
-@media (max-width:520px){.grid3,.agenda{grid-template-columns:minmax(0,1fr)} .search{flex-direction:column}.btn{padding:12px}}
-@media print{.slide{min-height:auto;break-after:page}nav.dots,.theme{display:none}}
+/* ---------- chrome ---------- */
+.chrome{position:fixed;right:0;top:6px;display:flex;align-items:center;gap:10px;padding:8px 12px;margin-right:12px;background:rgba(10,22,18,.72);border-radius:12px;z-index:50;opacity:.35;transition:opacity .3s}
+.chrome:hover{opacity:1}
+.chrome button{font:inherit;font-size:14px;background:rgba(255,255,255,.1);color:#e9e2d2;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:6px 12px;cursor:pointer}
+.chrome .count{font-family:var(--mono);font-size:13px;color:#cfc6b4;min-width:70px}
+.progress{position:fixed;left:0;top:0;height:3px;background:var(--gold);z-index:51;transition:width .5s cubic-bezier(.2,.7,.2,1)}
+
+/* ---------- flow mode (phones / narrow windows) ---------- */
+body.flow{overflow:auto;background:var(--paper)}
+.flow .stage{position:static;width:auto;height:auto;transform:none;box-shadow:none;border-radius:0}
+.flow .slide{position:relative;opacity:1;visibility:visible;transform:none;padding:56px 16px;inset:auto}
+.flow .rise,.flow .tok,.flow #map .city{opacity:1;transform:none}
+.flow .bar .f{width:var(--w)}.flow .fz .band{width:var(--w)}
+.flow h1{font-size:48px}.flow h2{font-size:34px}.flow .end h1{font-size:64px}
+.flow .sub,.flow .title-wrap .sub{font-size:18px}
+.flow .g2,.flow .g3,.flow .g4,.flow .title-wrap,.flow .verdict,.flow .how,.flow .collect,.flow .steps,.flow .qgrid,.flow .statrow{grid-template-columns:minmax(0,1fr)}
+.flow .steps::before{display:none}
+.flow #map{height:420px}
+.flow .bignum{font-size:56px}
+.flow .bar{grid-template-columns:110px minmax(0,1fr) 54px;font-size:15px}
+.flow .fz{grid-template-columns:minmax(0,1fr) 90px}.flow .fz .num{font-size:28px}.flow .fz .band{font-size:15px;height:52px}
+.flow .sentence{font-size:22px}.flow .tok{font-size:17px}
+.flow .res{grid-template-columns:minmax(0,1fr)}
+.flow .searchbox{flex-direction:column}.flow .searchbox button{padding:14px}
+.flow .slide-foot,.flow .chrome{display:none}
+.flow .end{min-height:60vh}
+.flow .meta{flex-wrap:wrap}
+@media print{body{overflow:visible}}
 </style>
 </head>
 <body>
-<button class="theme" id="theme" type="button" aria-label="Toggle dark mode">◐ Theme</button>
-<nav class="dots" id="dots" aria-label="Slides"></nav>
+<div class="progress" id="progress"></div>
 <div id="tip" role="tooltip"></div>
 
-<!-- 1. Title -->
-<section class="slide" id="s-title" data-name="Title">
- <div class="inner">
-  <div class="flag" aria-hidden="true"><i></i><i></i><i></i></div>
-  <p class="kicker">NLP project · Phase 1 · Group 5 – Italian</p>
-  <h1>Searching Italian cities with NLP</h1>
-  <p class="lead">An Italian corpus of 20 city descriptions from Wikipedia, preprocessed with spaCy (<code>it_core_news_md</code>), as the base for a <b>search engine / question-answering system</b>.</p>
-  <ol class="agenda">
-   <li><a href="#s-corpus">Corpus collection</a></li>
-   <li><a href="#s-pipeline">Preprocessing pipeline</a></li>
-   <li><a href="#s-analysis">What the data looks like</a></li>
-   <li><a href="#s-ling">Linguistic analysis &amp; errors</a></li>
-   <li><a href="#s-app">Application area + live demo</a></li>
-   <li><a href="#s-next">Repository &amp; next steps</a></li>
-  </ol>
- </div>
-</section>
+<main class="stage" id="stage">
 
-<!-- 2. Corpus -->
-<section class="slide" id="s-corpus" data-name="Corpus">
- <div class="inner">
-  <p class="kicker">01 · Corpus collection</p>
-  <h2>20 Italian cities, taken from it.wikipedia.org</h2>
-  <div class="stats" id="corpusStats"></div>
-  <div class="grid2">
-   <div>
-    <h3>How we built it</h3>
-    <ul>
-     <li><b>Source:</b> the opening paragraphs of the Italian Wikipedia article for each of the 20 largest Italian cities.</li>
-     <li><b>Method:</b> <code>build_corpus.py</code> calls the official <b>MediaWiki API</b> (plain-text extracts, no HTML scraping), with retry on rate limits.</li>
-     <li><b>Rules:</b> whole paragraphs, 220–300 words per text, headings removed, IPA/dialect brackets after the city name removed.</li>
-     <li><b>Format:</b> <code>corpus/text01.txt … text20.txt</code>, UTF-8, one paragraph per line.</li>
-     <li><b>Licence:</b> CC BY-SA 4.0. Title, URL, access date and word count for each text are in <code>sources.csv</code>.</li>
-    </ul>
-    <p class="muted">Why this topic: the texts are factual, well-written, uniform in style and full of named entities (places, people, dates), which suits a search / QA application.</p>
-   </div>
-   <div>
-    <h3>Words per text</h3>
-    <div class="bars" id="wordsBars" style="--lab:120px"></div>
+<!-- 1 · TITLE -->
+<section class="slide dark" data-name="Title">
+ <div class="title-wrap">
+  <div>
+   <div class="rise" style="--d:0"><span class="flag"><i></i><i></i><i></i></span></div>
+   <p class="eyebrow rise" style="--d:1;margin-top:34px">NLP Project · Phase 1</p>
+   <h1 class="rise" style="--d:2">Searching <em>Italian</em> cities with NLP</h1>
+   <p class="sub rise" style="--d:3">A corpus of 20 Italian Wikipedia texts, preprocessed with spaCy, as the base for a search engine that answers questions about Italian cities.</p>
+   <div class="meta rise" style="--d:4">
+    <div>GROUP<b>Group 5 · Italian</b></div>
+    <div>MODEL<b>it_core_news_md</b></div>
+    <div>CORPUS<b>20 cities · 5,589 words</b></div>
    </div>
   </div>
+  <svg id="map" aria-label="Map of the 20 cities in the corpus"></svg>
  </div>
+ <div class="slide-foot"><span>Natural Language Processing</span><span>Phase 1 presentation</span></div>
 </section>
 
-<!-- 3. Pipeline -->
-<section class="slide" id="s-pipeline" data-name="Pipeline">
- <div class="inner">
-  <p class="kicker">02 · Preprocessing</p>
-  <h2>From raw Wikipedia text to clean lemmas</h2>
-  <p class="lead">Script: <code>preprocess.py</code>. The output is stored in <code>corpus_clean/</code> (clean sentences) and <code>corpus_processed/</code> (content lemmas, one sentence per line).</p>
-  <div class="pipe">
-   <div class="step"><b>Cleaning</b><ul><li>UTF-8 check, no mojibake</li><li>’ → ' , nbsp → space</li><li>remove template leftovers</li></ul></div>
-   <div class="step"><b>Normalisation</b><ul><li>join numbers: <code>2 743 357</code> → <code>2743357</code></li><li>collapse whitespace</li></ul></div>
-   <div class="step"><b>Segmentation</b><ul><li>sentence splitting</li><li>tokenization (elisions <code>dell'</code>, <code>l'</code>)</li></ul></div>
-   <div class="step"><b>Annotation</b><ul><li>POS tags</li><li>lemmas</li><li>dependencies, NER</li></ul></div>
-   <div class="step"><b>Filtering</b><ul><li>lowercase</li><li>drop punctuation &amp; numbers</li><li>drop stop words → lemmas</li></ul></div>
-  </div>
-  <div class="grid2">
-   <div>
-    <h3>Corpus size after each step</h3>
-    <div class="bars big" id="funnel" style="--lab:150px"></div>
-    <p class="muted" id="funnelNote"></p>
-   </div>
-   <div>
-    <h3>Normalisation example</h3>
-    <div class="before-after">
-     <div class="ba x"><b>Before: 3 tokens</b><span id="numBefore"></span></div>
-     <div class="ba y"><b>After: 1 token</b><span id="numAfter"></span></div>
-    </div>
-    <p class="muted" id="fixNote" style="margin-top:12px"></p>
-   </div>
-  </div>
+<!-- 2 · OVERVIEW -->
+<section class="slide" data-name="Overview">
+ <p class="eyebrow rise">The project in one slide</p>
+ <h2 class="rise" style="--d:1">From <em>raw text</em> to a working search engine</h2>
+ <div class="g3" style="margin-top:56px">
+  <div class="card rise" style="--d:2"><div class="bignum">01</div><h3 style="margin-top:18px">Corpus</h3><p>20 texts about Italian cities, collected from it.wikipedia.org through the official API. Licence and source of every text are documented.</p></div>
+  <div class="card rise" style="--d:3"><div class="bignum t">02</div><h3 style="margin-top:18px">Preprocessing</h3><p>Cleaning, normalisation, sentence splitting, tokenization, lemmas, stop words, POS and named entities with spaCy.</p></div>
+  <div class="card rise" style="--d:4"><div class="bignum">03</div><h3 style="margin-top:18px">Application</h3><p>A <b>search engine</b>: ask a question in Italian and get the most relevant sentences, ranked with TF-IDF and cosine similarity.</p></div>
  </div>
+ <div class="slide-foot"><span>Overview</span><span></span></div>
 </section>
 
-<!-- 4. Token example -->
-<section class="slide" id="s-tokens" data-name="Tokens">
- <div class="inner">
-  <p class="kicker">02 · Preprocessing, one sentence</p>
-  <h2>What happens to every token</h2>
-  <p class="sent" id="exSent"></p>
-  <div class="legend"><span class="k">kept → lemma (below)</span><span class="s">stop word (removed)</span><span class="p">punctuation / number (removed)</span></div>
-  <div class="toks" id="exToks"></div>
-  <h3>Result in <code>corpus_processed/text01.txt</code></h3>
-  <p><code id="exOut"></code></p>
-  <div class="grid3" style="margin-top:20px">
-   <div class="card"><h3>Lowercase + lemma</h3><p class="muted">Forms such as <i>abitanti</i> and <i>abitante</i> become one lemma, <i>abitante</i>, so the vocabulary shrinks from <b id="uf"></b> forms to <b id="ul"></b> lemmas.</p></div>
-   <div class="card"><h3>Italian elisions</h3><p class="muted"><i>dell'omonima</i> is split into <code>dell'</code> + <code>omonima</code>, with lemmas <i>di il</i> + <i>omonimo</i>. Articulated prepositions (<i>del, nel</i>) stay one token.</p></div>
-   <div class="card"><h3>Why remove stop words?</h3><p class="muted">9 of the 10 most frequent words are function words. They say nothing about which city a sentence describes, so we drop them for search.</p></div>
+<!-- 3 · CORPUS -->
+<section class="slide" data-name="Corpus">
+ <div class="g2" style="grid-template-columns:1.05fr 1fr;height:100%">
+  <div>
+   <p class="eyebrow rise">01 · Corpus</p>
+   <h2 class="rise" style="--d:1">20 cities, <em>one text each</em></h2>
+   <p class="sub rise" style="--d:2;font-size:22px">The opening paragraphs of each city's Italian Wikipedia article: factual and well written, with many names, places and dates.</p>
+   <div class="statrow" id="corpusStats" style="grid-template-columns:1fr 1fr;margin-top:40px"></div>
+  </div>
+  <div class="rise" style="--d:3">
+   <p class="chart-title">Words per text</p>
+   <div class="bars compact" id="wordsBars" style="--lab:150px;--h:14px"></div>
   </div>
  </div>
+ <div class="slide-foot"><span>Corpus</span><span>Source: it.wikipedia.org · CC BY-SA 4.0</span></div>
 </section>
 
-<!-- 5. Analysis -->
-<section class="slide" id="s-analysis" data-name="Analysis">
- <div class="inner">
-  <p class="kicker">03 · Corpus analysis</p>
-  <h2>Stop words hide the topic, lemmas show it</h2>
-  <div class="grid2">
-   <div><h3>Top 10 words (raw, lowercase)</h3><div class="bars" id="topWords" style="--lab:90px"></div></div>
-   <div><h3>Top 15 content lemmas</h3><div class="bars" id="topLemmas" style="--lab:120px"></div></div>
-  </div>
-  <div class="grid2" style="margin-top:12px">
-   <div><h3>Parts of speech</h3><div class="bars" id="posBars" style="--lab:70px"></div></div>
-   <div><h3>Named entities by label</h3><div class="bars big" id="entBars" style="--lab:70px"></div>
-    <p class="muted">The Italian model only has <b>LOC, PER, ORG, MISC</b>. There is no DATE label, so <i>VIII secolo a.C.</i> becomes MISC or is not found at all.</p></div>
+<!-- 4 · COLLECTION -->
+<section class="slide" data-name="Collection">
+ <p class="eyebrow rise">01 · How we collected it</p>
+ <h2 class="rise" style="--d:1">An API, <em>not</em> web scraping</h2>
+ <p class="sub rise" style="--d:2">Script <code>build_corpus.py</code>, which can be re-run at any time to rebuild the same corpus.</p>
+ <div class="collect">
+  <div class="card rise" style="--d:3"><span class="n">STEP 1</span><h3>MediaWiki API</h3><p>Plain-text extract of each article. No HTML, no menus. Retries automatically when rate-limited (HTTP 429).</p></div>
+  <div class="card rise" style="--d:4"><span class="n">STEP 2</span><h3>Paragraph filter</h3><p>Headings and captions are dropped. We keep whole paragraphs only, between 220 and 300 words per text.</p></div>
+  <div class="card rise" style="--d:5"><span class="n">STEP 3</span><h3>First cleaning</h3><p>IPA and dialect brackets after the city name are removed, e.g. <i>Brescia (afi: /ˈbr(ɛ)ʃːa/ …)</i>.</p></div>
+  <div class="card rise" style="--d:6"><span class="n">STEP 4</span><h3>Files + metadata</h3><p><code>corpus/text01…20.txt</code> in UTF-8, plus <code>sources.csv</code> with title, URL, date, licence and word count.</p></div>
+ </div>
+ <div class="slide-foot"><span>Corpus collection</span><span>build_corpus.py</span></div>
+</section>
+
+<!-- 5 · PIPELINE -->
+<section class="slide" data-name="Pipeline">
+ <p class="eyebrow rise">02 · Preprocessing</p>
+ <h2 class="rise" style="--d:1">Five steps from <em>raw text</em> to lemmas</h2>
+ <p class="sub rise" style="--d:2">Script <code>preprocess.py</code>. It writes <code>corpus_clean/</code> (one sentence per line) and <code>corpus_processed/</code> (content lemmas).</p>
+ <div class="steps">
+  <div class="step rise" style="--d:3"><div class="dot">1</div><h3>Cleaning</h3><ul><li>UTF-8 check</li><li>apostrophes, spaces</li><li>template leftovers</li></ul></div>
+  <div class="step rise" style="--d:4"><div class="dot">2</div><h3>Normalise</h3><ul><li>join numbers <code>2 743 357</code></li><li>collapse whitespace</li></ul></div>
+  <div class="step rise" style="--d:5"><div class="dot">3</div><h3>Segment</h3><ul><li>sentence split</li><li>tokenize (<code>dell'</code>, <code>l'</code>)</li></ul></div>
+  <div class="step rise" style="--d:6"><div class="dot">4</div><h3>Annotate</h3><ul><li>POS tags</li><li>lemmas</li><li>dependencies, NER</li></ul></div>
+  <div class="step rise" style="--d:7"><div class="dot">5</div><h3>Filter</h3><ul><li>lowercase</li><li>no punctuation / numbers</li><li>no stop words</li></ul></div>
+ </div>
+ <div class="slide-foot"><span>Preprocessing pipeline</span><span>preprocess.py</span></div>
+</section>
+
+<!-- 6 · FUNNEL -->
+<section class="slide" data-name="Numbers">
+ <p class="eyebrow rise">02 · What preprocessing does to the corpus</p>
+ <h2 class="rise" style="--d:1">Half of the words are <em>stop words</em></h2>
+ <div class="g2" style="grid-template-columns:1.35fr 1fr;margin-top:40px;gap:70px">
+  <div class="funnel rise" style="--d:2" id="funnel"></div>
+  <div class="rise" style="--d:3">
+   <p class="chart-title">Normalisation example</p>
+   <div class="ba" style="margin-bottom:10px"><span class="chip bad">2</span><span class="chip bad">743</span><span class="chip bad">357</span><span class="chip">abitanti</span></div>
+   <p class="muted" style="font-size:17px;margin-bottom:18px">Before: one number split into 3 NUM tokens</p>
+   <div class="ba" style="margin-bottom:10px"><span class="chip good">2743357</span><span class="chip">abitanti</span></div>
+   <p class="muted" style="font-size:17px;margin-bottom:30px">After: one token, and the dependency tree is correct</p>
+   <div class="callout" id="fixNote"></div>
   </div>
  </div>
+ <div class="slide-foot"><span>Preprocessing in numbers</span><span>output/preprocessing_stats.json</span></div>
 </section>
 
-<!-- 6. Linguistic analysis -->
-<section class="slide" id="s-ling" data-name="Linguistics">
- <div class="inner">
-  <p class="kicker">03 · Dependencies &amp; entities (displaCy)</p>
-  <h2>Three corpus sentences: what spaCy gets right and wrong</h2>
-  <div class="tabs" role="tablist" id="depTabs">
-   <button role="tab" aria-selected="true" data-i="0">1 · Roma</button>
-   <button role="tab" aria-selected="false" data-i="1">2 · Napoli</button>
-   <button role="tab" aria-selected="false" data-i="2">3 · Verona</button>
-  </div>
-  <div id="depPanels">
-   <div class="panel">
-    <p class="sent">Roma è un comune italiano di 2 743 357 abitanti, capoluogo dell'omonima città metropolitana e della regione Lazio, nonché capitale della Repubblica Italiana.</p>
-    <div class="verdict"><div class="y">✔ <i>Roma, Lazio, Repubblica Italiana</i> found as entities; <i>dell'</i> split and lemmatised as <i>di il</i>.</div>
-    <div class="x">✘ <i>comune</i> tagged ADJ instead of NOUN; the number split into 3 tokens makes <i>abitanti</i> a second <b>nsubj</b>. <b>Our normalisation fixes this.</b></div></div>
-    <div class="dep"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:lang="it" id="3e31fb7e96d44290bd352a8822100b04-0" class="displacy" width="2690" height="357.0" direction="ltr" style="max-width: none; height: 357.0px; color: #000000; background: #ffffff; font-family: Arial; direction: ltr">
+<!-- 7 · TOKENS -->
+<section class="slide" data-name="Tokens">
+ <p class="eyebrow rise">02 · One sentence, token by token</p>
+ <p class="sentence rise" style="--d:1" id="exSent"></p>
+ <div class="legend rise" style="--d:2"><span class="k"><i></i>kept → lemma below</span><span><i></i>stop word, removed</span><span class="p"><i></i>punctuation / number, removed</span></div>
+ <div class="toks" id="exToks"></div>
+ <div class="result rise" style="--d:6"><b>corpus_processed/text01.txt →</b><span id="exOut"></span></div>
+ <div class="slide-foot"><span>Tokens, lemmas, stop words</span><span>hover a token for its POS and lemma</span></div>
+</section>
+
+<!-- 8 · TOP WORDS -->
+<section class="slide" data-name="Frequencies">
+ <p class="eyebrow rise">03 · Corpus analysis</p>
+ <h2 class="rise" style="--d:1">Stop words <em>hide</em> the topic, lemmas <em>reveal</em> it</h2>
+ <div class="g2" style="margin-top:40px;gap:80px">
+  <div class="rise" style="--d:2"><p class="chart-title">Top 10 words · raw, lowercase</p><div class="bars terra" id="topWords" style="--lab:80px;--h:20px"></div>
+   <p class="muted" style="font-size:18px;margin-top:16px">9 of 10 are function words (<i>e, di, la, il…</i>). Only <b>città</b> hints at the topic.</p></div>
+  <div class="rise" style="--d:3"><p class="chart-title">Top 10 content lemmas</p><div class="bars" id="topLemmas" style="--lab:160px;--h:20px"></div>
+   <p class="muted" style="font-size:18px;margin-top:16px">After filtering, the vocabulary of describing a city appears: <i>comune, centro, capitale, capoluogo…</i></p></div>
+ </div>
+ <div class="slide-foot"><span>Word frequencies</span><span></span></div>
+</section>
+
+<!-- 9 · POS + NER -->
+<section class="slide" data-name="POS & NER">
+ <p class="eyebrow rise">03 · Corpus analysis</p>
+ <h2 class="rise" style="--d:1">A corpus full of <em>nouns and places</em></h2>
+ <div class="g2" style="margin-top:36px;gap:80px">
+  <div class="rise" style="--d:2"><p class="chart-title">Parts of speech · top 10</p><div class="bars" id="posBars" style="--lab:90px;--h:18px"></div></div>
+  <div class="rise" style="--d:3"><p class="chart-title">Named entities by label</p><div class="bars big terra" id="entBars" style="--lab:80px;--h:30px"></div>
+   <div class="callout" style="margin-top:34px;font-size:19px">The Italian model has only 4 labels: <b>LOC, PER, ORG, MISC</b>. There is no DATE, so <i>VIII secolo a.C.</i> becomes MISC or is not found.</div></div>
+ </div>
+ <div class="slide-foot"><span>POS tags &amp; named entities</span><span>hover a bar for examples</span></div>
+</section>
+
+<!-- 10 · DEPENDENCIES -->
+<section class="slide" data-name="Dependencies">
+ <p class="eyebrow rise">03 · displaCy · dependencies</p>
+ <h2 class="rise" style="--d:1">What spaCy gets <em>right</em>, and <em>wrong</em></h2>
+ <div class="tabs rise" style="--d:2" role="tablist" id="depTabs">
+  <button role="tab" aria-selected="true" data-i="0">1 · Roma</button>
+  <button role="tab" aria-selected="false" data-i="1">2 · Napoli</button>
+  <button role="tab" aria-selected="false" data-i="2">3 · Verona</button>
+ </div>
+ <div id="depPanels" class="rise" style="--d:3">
+  <div class="panel">
+   <p class="dep-sent">Roma è un comune italiano di 2 743 357 abitanti, capoluogo dell'omonima città metropolitana e della regione Lazio …</p>
+   <div class="verdict"><div class="y"><b class="mk">✓ CORRECT</b><i>Roma, Lazio, Repubblica Italiana</i> found as entities; <i>dell'</i> → lemma <i>di il</i>.</div>
+   <div class="x"><b class="mk">✗ WRONG</b><i>comune</i> = ADJ instead of NOUN; the split number makes <i>abitanti</i> a second <b>nsubj</b>. Our normalisation fixes it.</div></div>
+   <div class="dep"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:lang="it" id="6613f9f21aad4fcc88513edacd444f38-0" class="displacy" width="2690" height="357.0" direction="ltr" style="max-width: none; height: 357.0px; color: #000000; background: #ffffff; font-family: Arial; direction: ltr">
 <text class="displacy-token" fill="currentColor" text-anchor="middle" y="267.0">
     <tspan class="displacy-word" fill="currentColor" x="50">Roma</tspan>
     <tspan class="displacy-tag" dy="2em" fill="currentColor" x="50">PROPN</tspan>
@@ -405,195 +514,195 @@ nav.dots a.on{background:var(--accent);transform:scale(1.25)}
 </text>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-0" stroke-width="2px" d="M62,222.0 62,167.0 377.0,167.0 377.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-0" stroke-width="2px" d="M62,222.0 62,167.0 377.0,167.0 377.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-0" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nsubj</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-0" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nsubj</textPath>
     </text>
     <path class="displacy-arrowhead" d="M62,224.0 L58,216.0 66,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-1" stroke-width="2px" d="M172,222.0 172,185.33333333333334 374.0,185.33333333333334 374.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-1" stroke-width="2px" d="M172,222.0 172,185.33333333333334 374.0,185.33333333333334 374.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-1" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">cop</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-1" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">cop</textPath>
     </text>
     <path class="displacy-arrowhead" d="M172,224.0 L168,216.0 176,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-2" stroke-width="2px" d="M282,222.0 282,203.66666666666666 371.0,203.66666666666666 371.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-2" stroke-width="2px" d="M282,222.0 282,203.66666666666666 371.0,203.66666666666666 371.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-2" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">det</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-2" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">det</textPath>
     </text>
     <path class="displacy-arrowhead" d="M282,224.0 L278,216.0 286,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-3" stroke-width="2px" d="M392,222.0 392,203.66666666666666 481.0,203.66666666666666 481.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-3" stroke-width="2px" d="M392,222.0 392,203.66666666666666 481.0,203.66666666666666 481.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-3" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-3" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M481.0,224.0 L485.0,216.0 477.0,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-4" stroke-width="2px" d="M612,222.0 612,185.33333333333334 814.0,185.33333333333334 814.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-4" stroke-width="2px" d="M612,222.0 612,185.33333333333334 814.0,185.33333333333334 814.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-4" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-4" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M612,224.0 L608,216.0 616,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-5" stroke-width="2px" d="M722,222.0 722,203.66666666666666 811.0,203.66666666666666 811.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-5" stroke-width="2px" d="M722,222.0 722,203.66666666666666 811.0,203.66666666666666 811.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-5" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nummod</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-5" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nummod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M722,224.0 L718,216.0 726,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-6" stroke-width="2px" d="M502,222.0 502,167.0 817.0,167.0 817.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-6" stroke-width="2px" d="M502,222.0 502,167.0 817.0,167.0 817.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-6" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nummod</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-6" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nummod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M817.0,224.0 L821.0,216.0 813.0,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-7" stroke-width="2px" d="M942,222.0 942,203.66666666666666 1031.0,203.66666666666666 1031.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-7" stroke-width="2px" d="M942,222.0 942,203.66666666666666 1031.0,203.66666666666666 1031.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-7" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nummod</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-7" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nummod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M942,224.0 L938,216.0 946,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-8" stroke-width="2px" d="M392,222.0 392,148.66666666666669 1040.0,148.66666666666669 1040.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-8" stroke-width="2px" d="M392,222.0 392,148.66666666666669 1040.0,148.66666666666669 1040.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-8" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nsubj</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-8" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nsubj</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1040.0,224.0 L1044.0,216.0 1036.0,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-9" stroke-width="2px" d="M1052,222.0 1052,203.66666666666666 1141.0,203.66666666666666 1141.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-9" stroke-width="2px" d="M1052,222.0 1052,203.66666666666666 1141.0,203.66666666666666 1141.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-9" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">appos</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-9" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">appos</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1141.0,224.0 L1145.0,216.0 1137.0,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-10" stroke-width="2px" d="M1272,222.0 1272,185.33333333333334 1474.0,185.33333333333334 1474.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-10" stroke-width="2px" d="M1272,222.0 1272,185.33333333333334 1474.0,185.33333333333334 1474.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-10" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-10" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1272,224.0 L1268,216.0 1276,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-11" stroke-width="2px" d="M1382,222.0 1382,203.66666666666666 1471.0,203.66666666666666 1471.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-11" stroke-width="2px" d="M1382,222.0 1382,203.66666666666666 1471.0,203.66666666666666 1471.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-11" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-11" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1382,224.0 L1378,216.0 1386,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-12" stroke-width="2px" d="M1162,222.0 1162,167.0 1477.0,167.0 1477.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-12" stroke-width="2px" d="M1162,222.0 1162,167.0 1477.0,167.0 1477.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-12" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nmod</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-12" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nmod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1477.0,224.0 L1481.0,216.0 1473.0,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-13" stroke-width="2px" d="M1492,222.0 1492,203.66666666666666 1581.0,203.66666666666666 1581.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-13" stroke-width="2px" d="M1492,222.0 1492,203.66666666666666 1581.0,203.66666666666666 1581.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-13" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-13" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1581.0,224.0 L1585.0,216.0 1577.0,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-14" stroke-width="2px" d="M1712,222.0 1712,185.33333333333334 1914.0,185.33333333333334 1914.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-14" stroke-width="2px" d="M1712,222.0 1712,185.33333333333334 1914.0,185.33333333333334 1914.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-14" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">cc</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-14" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">cc</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1712,224.0 L1708,216.0 1716,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-15" stroke-width="2px" d="M1822,222.0 1822,203.66666666666666 1911.0,203.66666666666666 1911.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-15" stroke-width="2px" d="M1822,222.0 1822,203.66666666666666 1911.0,203.66666666666666 1911.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-15" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-15" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1822,224.0 L1818,216.0 1826,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-16" stroke-width="2px" d="M1492,222.0 1492,167.0 1917.0,167.0 1917.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-16" stroke-width="2px" d="M1492,222.0 1492,167.0 1917.0,167.0 1917.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-16" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">conj</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-16" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">conj</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1917.0,224.0 L1921.0,216.0 1913.0,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-17" stroke-width="2px" d="M1932,222.0 1932,203.66666666666666 2021.0,203.66666666666666 2021.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-17" stroke-width="2px" d="M1932,222.0 1932,203.66666666666666 2021.0,203.66666666666666 2021.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-17" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nmod</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-17" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nmod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2021.0,224.0 L2025.0,216.0 2017.0,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-18" stroke-width="2px" d="M2152,222.0 2152,203.66666666666666 2241.0,203.66666666666666 2241.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-18" stroke-width="2px" d="M2152,222.0 2152,203.66666666666666 2241.0,203.66666666666666 2241.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-18" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">cc</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-18" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">cc</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2152,224.0 L2148,216.0 2156,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-19" stroke-width="2px" d="M1162,222.0 1162,148.66666666666669 2250.0,148.66666666666669 2250.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-19" stroke-width="2px" d="M1162,222.0 1162,148.66666666666669 2250.0,148.66666666666669 2250.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-19" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">conj</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-19" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">conj</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2250.0,224.0 L2254.0,216.0 2246.0,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-20" stroke-width="2px" d="M2372,222.0 2372,203.66666666666666 2461.0,203.66666666666666 2461.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-20" stroke-width="2px" d="M2372,222.0 2372,203.66666666666666 2461.0,203.66666666666666 2461.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-20" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-20" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2372,224.0 L2368,216.0 2376,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-21" stroke-width="2px" d="M2262,222.0 2262,185.33333333333334 2464.0,185.33333333333334 2464.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-21" stroke-width="2px" d="M2262,222.0 2262,185.33333333333334 2464.0,185.33333333333334 2464.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-21" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nmod</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-21" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nmod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2464.0,224.0 L2468.0,216.0 2460.0,216.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-3e31fb7e96d44290bd352a8822100b04-0-22" stroke-width="2px" d="M2482,222.0 2482,203.66666666666666 2571.0,203.66666666666666 2571.0,222.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-6613f9f21aad4fcc88513edacd444f38-0-22" stroke-width="2px" d="M2482,222.0 2482,203.66666666666666 2571.0,203.66666666666666 2571.0,222.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-3e31fb7e96d44290bd352a8822100b04-0-22" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
+        <textPath xlink:href="#arrow-6613f9f21aad4fcc88513edacd444f38-0-22" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2571.0,224.0 L2575.0,216.0 2567.0,216.0" fill="currentColor"/>
 </g>
 </svg></div>
-   </div>
-   <div class="panel" hidden>
-    <p class="sent">Napoli nasce come Partenope, fondata dai Cumani su Pizzofalcone a fine VIII secolo a.C. su base archeologica, sebbene sporadici reperti suggeriscano una datazione più antica.</p>
-    <div class="verdict"><div class="y">✔ <i>Napoli, Partenope, Pizzofalcone</i> = LOC; ROOT <i>nasce</i>; <i>fondata → fondare</i> attached to <i>Partenope</i>.</div>
-    <div class="x">✘ subjunctive <i>suggeriscano</i> gets the non-existent lemma <b>suggeriscare</b>; <i>secolo</i> analysed as <b>obl:agent</b>, but it is a time expression.</div></div>
-    <div class="dep"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:lang="it" id="42595fff29b2434a88ee693f46f0042a-0" class="displacy" width="2800" height="577.0" direction="ltr" style="max-width: none; height: 577.0px; color: #000000; background: #ffffff; font-family: Arial; direction: ltr">
+  </div>
+  <div class="panel" hidden>
+   <p class="dep-sent">Napoli nasce come Partenope, fondata dai Cumani su Pizzofalcone a fine VIII secolo a.C. …, sebbene sporadici reperti suggeriscano una datazione più antica.</p>
+   <div class="verdict"><div class="y"><b class="mk">✓ CORRECT</b><i>Napoli, Partenope, Pizzofalcone</i> = LOC; ROOT <i>nasce</i>; <i>fondata → fondare</i>.</div>
+   <div class="x"><b class="mk">✗ WRONG</b><i>suggeriscano</i> gets the non-existent lemma <b>suggeriscare</b>; <i>secolo</i> tagged <b>obl:agent</b>.</div></div>
+   <div class="dep"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:lang="it" id="90380989263d46b5b486c0a4086c22f1-0" class="displacy" width="2800" height="577.0" direction="ltr" style="max-width: none; height: 577.0px; color: #000000; background: #ffffff; font-family: Arial; direction: ltr">
 <text class="displacy-token" fill="currentColor" text-anchor="middle" y="487.0">
     <tspan class="displacy-word" fill="currentColor" x="50">Napoli</tspan>
     <tspan class="displacy-tag" dy="2em" fill="currentColor" x="50">PROPN</tspan>
@@ -720,203 +829,203 @@ nav.dots a.on{background:var(--accent);transform:scale(1.25)}
 </text>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-0" stroke-width="2px" d="M62,442.0 62,423.6666666666667 139.0,423.6666666666667 139.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-0" stroke-width="2px" d="M62,442.0 62,423.6666666666667 139.0,423.6666666666667 139.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-0" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nsubj</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-0" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nsubj</textPath>
     </text>
     <path class="displacy-arrowhead" d="M62,444.0 L58,436.0 66,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-1" stroke-width="2px" d="M282,442.0 282,423.6666666666667 359.0,423.6666666666667 359.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-1" stroke-width="2px" d="M282,442.0 282,423.6666666666667 359.0,423.6666666666667 359.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-1" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-1" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M282,444.0 L278,436.0 286,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-2" stroke-width="2px" d="M172,442.0 172,405.3333333333333 362.0,405.3333333333333 362.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-2" stroke-width="2px" d="M172,442.0 172,405.3333333333333 362.0,405.3333333333333 362.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-2" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-2" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl</textPath>
     </text>
     <path class="displacy-arrowhead" d="M362.0,444.0 L366.0,436.0 358.0,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-3" stroke-width="2px" d="M392,442.0 392,423.6666666666667 469.0,423.6666666666667 469.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-3" stroke-width="2px" d="M392,442.0 392,423.6666666666667 469.0,423.6666666666667 469.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-3" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">acl</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-3" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">acl</textPath>
     </text>
     <path class="displacy-arrowhead" d="M469.0,444.0 L473.0,436.0 465.0,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-4" stroke-width="2px" d="M612,442.0 612,423.6666666666667 689.0,423.6666666666667 689.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-4" stroke-width="2px" d="M612,442.0 612,423.6666666666667 689.0,423.6666666666667 689.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-4" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-4" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M612,444.0 L608,436.0 616,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-5" stroke-width="2px" d="M502,442.0 502,405.3333333333333 692.0,405.3333333333333 692.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-5" stroke-width="2px" d="M502,442.0 502,405.3333333333333 692.0,405.3333333333333 692.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-5" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl:agent</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-5" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl:agent</textPath>
     </text>
     <path class="displacy-arrowhead" d="M692.0,444.0 L696.0,436.0 688.0,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-6" stroke-width="2px" d="M832,442.0 832,423.6666666666667 909.0,423.6666666666667 909.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-6" stroke-width="2px" d="M832,442.0 832,423.6666666666667 909.0,423.6666666666667 909.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-6" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-6" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M832,444.0 L828,436.0 836,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-7" stroke-width="2px" d="M502,442.0 502,387.0 915.0,387.0 915.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-7" stroke-width="2px" d="M502,442.0 502,387.0 915.0,387.0 915.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-7" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-7" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl</textPath>
     </text>
     <path class="displacy-arrowhead" d="M915.0,444.0 L919.0,436.0 911.0,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-8" stroke-width="2px" d="M1052,442.0 1052,423.6666666666667 1129.0,423.6666666666667 1129.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-8" stroke-width="2px" d="M1052,442.0 1052,423.6666666666667 1129.0,423.6666666666667 1129.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-8" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-8" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1052,444.0 L1048,436.0 1056,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-9" stroke-width="2px" d="M502,442.0 502,368.6666666666667 1138.0,368.6666666666667 1138.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-9" stroke-width="2px" d="M502,442.0 502,368.6666666666667 1138.0,368.6666666666667 1138.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-9" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-9" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1138.0,444.0 L1142.0,436.0 1134.0,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-10" stroke-width="2px" d="M1272,442.0 1272,423.6666666666667 1349.0,423.6666666666667 1349.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-10" stroke-width="2px" d="M1272,442.0 1272,423.6666666666667 1349.0,423.6666666666667 1349.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-10" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-10" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1272,444.0 L1268,436.0 1276,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-11" stroke-width="2px" d="M502,442.0 502,350.3333333333333 1361.0,350.3333333333333 1361.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-11" stroke-width="2px" d="M502,442.0 502,350.3333333333333 1361.0,350.3333333333333 1361.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-11" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl:agent</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-11" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl:agent</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1361.0,444.0 L1365.0,436.0 1357.0,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-12" stroke-width="2px" d="M172,442.0 172,332.0 1474.0,332.0 1474.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-12" stroke-width="2px" d="M172,442.0 172,332.0 1474.0,332.0 1474.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-12" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">xcomp</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-12" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">xcomp</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1474.0,444.0 L1478.0,436.0 1470.0,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-13" stroke-width="2px" d="M1602,442.0 1602,423.6666666666667 1679.0,423.6666666666667 1679.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-13" stroke-width="2px" d="M1602,442.0 1602,423.6666666666667 1679.0,423.6666666666667 1679.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-13" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-13" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1602,444.0 L1598,436.0 1606,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-14" stroke-width="2px" d="M172,442.0 172,313.66666666666663 1697.0,313.66666666666663 1697.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-14" stroke-width="2px" d="M172,442.0 172,313.66666666666663 1697.0,313.66666666666663 1697.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-14" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-14" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1697.0,444.0 L1701.0,436.0 1693.0,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-15" stroke-width="2px" d="M1712,442.0 1712,423.6666666666667 1789.0,423.6666666666667 1789.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-15" stroke-width="2px" d="M1712,442.0 1712,423.6666666666667 1789.0,423.6666666666667 1789.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-15" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-15" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1789.0,444.0 L1793.0,436.0 1785.0,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-16" stroke-width="2px" d="M1932,442.0 1932,405.3333333333333 2232.0,405.3333333333333 2232.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-16" stroke-width="2px" d="M1932,442.0 1932,405.3333333333333 2232.0,405.3333333333333 2232.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-16" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">mark</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-16" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">mark</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1932,444.0 L1928,436.0 1936,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-17" stroke-width="2px" d="M2042,442.0 2042,423.6666666666667 2119.0,423.6666666666667 2119.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-17" stroke-width="2px" d="M2042,442.0 2042,423.6666666666667 2119.0,423.6666666666667 2119.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-17" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-17" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2042,444.0 L2038,436.0 2046,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-18" stroke-width="2px" d="M2152,442.0 2152,423.6666666666667 2229.0,423.6666666666667 2229.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-18" stroke-width="2px" d="M2152,442.0 2152,423.6666666666667 2229.0,423.6666666666667 2229.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-18" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nsubj</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-18" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nsubj</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2152,444.0 L2148,436.0 2156,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-19" stroke-width="2px" d="M172,442.0 172,295.33333333333337 2250.0,295.33333333333337 2250.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-19" stroke-width="2px" d="M172,442.0 172,295.33333333333337 2250.0,295.33333333333337 2250.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-19" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">advcl</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-19" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">advcl</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2250.0,444.0 L2254.0,436.0 2246.0,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-20" stroke-width="2px" d="M2372,442.0 2372,423.6666666666667 2449.0,423.6666666666667 2449.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-20" stroke-width="2px" d="M2372,442.0 2372,423.6666666666667 2449.0,423.6666666666667 2449.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-20" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">det</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-20" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">det</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2372,444.0 L2368,436.0 2376,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-21" stroke-width="2px" d="M2262,442.0 2262,405.3333333333333 2452.0,405.3333333333333 2452.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-21" stroke-width="2px" d="M2262,442.0 2262,405.3333333333333 2452.0,405.3333333333333 2452.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-21" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obj</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-21" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obj</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2452.0,444.0 L2456.0,436.0 2448.0,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-22" stroke-width="2px" d="M2592,442.0 2592,423.6666666666667 2669.0,423.6666666666667 2669.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-22" stroke-width="2px" d="M2592,442.0 2592,423.6666666666667 2669.0,423.6666666666667 2669.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-22" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">advmod</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-22" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">advmod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2592,444.0 L2588,436.0 2596,436.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-42595fff29b2434a88ee693f46f0042a-0-23" stroke-width="2px" d="M2482,442.0 2482,405.3333333333333 2672.0,405.3333333333333 2672.0,442.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-90380989263d46b5b486c0a4086c22f1-0-23" stroke-width="2px" d="M2482,442.0 2482,405.3333333333333 2672.0,405.3333333333333 2672.0,442.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-42595fff29b2434a88ee693f46f0042a-0-23" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
+        <textPath xlink:href="#arrow-90380989263d46b5b486c0a4086c22f1-0-23" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2672.0,444.0 L2676.0,436.0 2668.0,436.0" fill="currentColor"/>
 </g>
 </svg></div>
-   </div>
-   <div class="panel" hidden>
-    <p class="sent">Di origine preistorica, l'abitato venne rifondato dai Romani all'interno dell'ansa del fiume … quando venne occupato dal re germanico Teodorico il Grande.</p>
-    <div class="verdict"><div class="y">✔ passive with <i>venire</i>: <i>abitato</i> = nsubj:pass, <i>venne</i> = aux:pass, ROOT = <i>rifondato</i>; <i>Teodorico il Grande</i> = PER.</div>
-    <div class="x">✘ <i>Romani</i> (a people) and <i>Impero</i> labelled LOC; <i>Grande</i> becomes a separate subject of <i>occupato</i>.</div></div>
-    <div class="dep"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:lang="it" id="e6d86200327540a5b9660961b5edb7b1-0" class="displacy" width="4560" height="412.0" direction="ltr" style="max-width: none; height: 412.0px; color: #000000; background: #ffffff; font-family: Arial; direction: ltr">
+  </div>
+  <div class="panel" hidden>
+   <p class="dep-sent">Di origine preistorica, l'abitato venne rifondato dai Romani … quando venne occupato dal re germanico Teodorico il Grande.</p>
+   <div class="verdict"><div class="y"><b class="mk">✓ CORRECT</b>Passive with <i>venire</i>: nsubj:pass + aux:pass, ROOT <i>rifondato</i>; <i>Teodorico il Grande</i> = PER.</div>
+   <div class="x"><b class="mk">✗ WRONG</b><i>Romani</i> (a people) labelled LOC; <i>Grande</i> becomes a separate subject.</div></div>
+   <div class="dep"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:lang="it" id="36fe9d0b7b4246f4b48eab65836f0084-0" class="displacy" width="4560" height="412.0" direction="ltr" style="max-width: none; height: 412.0px; color: #000000; background: #ffffff; font-family: Arial; direction: ltr">
 <text class="displacy-token" fill="currentColor" text-anchor="middle" y="322.0">
     <tspan class="displacy-word" fill="currentColor" x="50">Di</tspan>
     <tspan class="displacy-tag" dy="2em" fill="currentColor" x="50">ADP</tspan>
@@ -1123,420 +1232,410 @@ nav.dots a.on{background:var(--accent);transform:scale(1.25)}
 </text>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-0" stroke-width="2px" d="M62,277.0 62,258.6666666666667 148.0,258.6666666666667 148.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-0" stroke-width="2px" d="M62,277.0 62,258.6666666666667 148.0,258.6666666666667 148.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-0" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-0" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M62,279.0 L58,271.0 66,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-1" stroke-width="2px" d="M172,277.0 172,222.0 704.0,222.0 704.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-1" stroke-width="2px" d="M172,277.0 172,222.0 704.0,222.0 704.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-1" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-1" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl</textPath>
     </text>
     <path class="displacy-arrowhead" d="M172,279.0 L168,271.0 176,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-2" stroke-width="2px" d="M172,277.0 172,258.6666666666667 258.0,258.6666666666667 258.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-2" stroke-width="2px" d="M172,277.0 172,258.6666666666667 258.0,258.6666666666667 258.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-2" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-2" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M258.0,279.0 L262.0,271.0 254.0,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-3" stroke-width="2px" d="M392,277.0 392,258.6666666666667 478.0,258.6666666666667 478.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-3" stroke-width="2px" d="M392,277.0 392,258.6666666666667 478.0,258.6666666666667 478.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-3" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">det</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-3" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">det</textPath>
     </text>
     <path class="displacy-arrowhead" d="M392,279.0 L388,271.0 396,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-4" stroke-width="2px" d="M502,277.0 502,240.33333333333334 701.0,240.33333333333334 701.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-4" stroke-width="2px" d="M502,277.0 502,240.33333333333334 701.0,240.33333333333334 701.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-4" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nsubj:pass</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-4" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nsubj:pass</textPath>
     </text>
     <path class="displacy-arrowhead" d="M502,279.0 L498,271.0 506,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-5" stroke-width="2px" d="M612,277.0 612,258.6666666666667 698.0,258.6666666666667 698.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-5" stroke-width="2px" d="M612,277.0 612,258.6666666666667 698.0,258.6666666666667 698.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-5" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">aux:pass</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-5" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">aux:pass</textPath>
     </text>
     <path class="displacy-arrowhead" d="M612,279.0 L608,271.0 616,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-6" stroke-width="2px" d="M832,277.0 832,258.6666666666667 918.0,258.6666666666667 918.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-6" stroke-width="2px" d="M832,277.0 832,258.6666666666667 918.0,258.6666666666667 918.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-6" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-6" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M832,279.0 L828,271.0 836,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-7" stroke-width="2px" d="M722,277.0 722,240.33333333333334 921.0,240.33333333333334 921.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-7" stroke-width="2px" d="M722,277.0 722,240.33333333333334 921.0,240.33333333333334 921.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-7" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl:agent</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-7" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl:agent</textPath>
     </text>
     <path class="displacy-arrowhead" d="M921.0,279.0 L925.0,271.0 917.0,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-8" stroke-width="2px" d="M1052,277.0 1052,258.6666666666667 1138.0,258.6666666666667 1138.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-8" stroke-width="2px" d="M1052,277.0 1052,258.6666666666667 1138.0,258.6666666666667 1138.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-8" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-8" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1052,279.0 L1048,271.0 1056,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-9" stroke-width="2px" d="M722,277.0 722,222.0 1144.0,222.0 1144.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-9" stroke-width="2px" d="M722,277.0 722,222.0 1144.0,222.0 1144.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-9" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-9" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1144.0,279.0 L1148.0,271.0 1140.0,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-10" stroke-width="2px" d="M1272,277.0 1272,258.6666666666667 1358.0,258.6666666666667 1358.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-10" stroke-width="2px" d="M1272,277.0 1272,258.6666666666667 1358.0,258.6666666666667 1358.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-10" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-10" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1272,279.0 L1268,271.0 1276,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-11" stroke-width="2px" d="M1162,277.0 1162,240.33333333333334 1361.0,240.33333333333334 1361.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-11" stroke-width="2px" d="M1162,277.0 1162,240.33333333333334 1361.0,240.33333333333334 1361.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-11" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nmod</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-11" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nmod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1361.0,279.0 L1365.0,271.0 1357.0,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-12" stroke-width="2px" d="M1492,277.0 1492,258.6666666666667 1578.0,258.6666666666667 1578.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-12" stroke-width="2px" d="M1492,277.0 1492,258.6666666666667 1578.0,258.6666666666667 1578.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-12" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-12" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1492,279.0 L1488,271.0 1496,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-13" stroke-width="2px" d="M1382,277.0 1382,240.33333333333334 1581.0,240.33333333333334 1581.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-13" stroke-width="2px" d="M1382,277.0 1382,240.33333333333334 1581.0,240.33333333333334 1581.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-13" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nmod</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-13" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nmod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1581.0,279.0 L1585.0,271.0 1577.0,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-14" stroke-width="2px" d="M1712,277.0 1712,240.33333333333334 1911.0,240.33333333333334 1911.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-14" stroke-width="2px" d="M1712,277.0 1712,240.33333333333334 1911.0,240.33333333333334 1911.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-14" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-14" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1712,279.0 L1708,271.0 1716,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-15" stroke-width="2px" d="M1822,277.0 1822,258.6666666666667 1908.0,258.6666666666667 1908.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-15" stroke-width="2px" d="M1822,277.0 1822,258.6666666666667 1908.0,258.6666666666667 1908.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-15" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">det</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-15" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">det</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1822,279.0 L1818,271.0 1826,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-16" stroke-width="2px" d="M722,277.0 722,203.66666666666669 1917.0,203.66666666666669 1917.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-16" stroke-width="2px" d="M722,277.0 722,203.66666666666669 1917.0,203.66666666666669 1917.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-16" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-16" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl</textPath>
     </text>
     <path class="displacy-arrowhead" d="M1917.0,279.0 L1921.0,271.0 1913.0,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-17" stroke-width="2px" d="M2042,277.0 2042,240.33333333333334 2241.0,240.33333333333334 2241.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-17" stroke-width="2px" d="M2042,277.0 2042,240.33333333333334 2241.0,240.33333333333334 2241.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-17" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-17" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2042,279.0 L2038,271.0 2046,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-18" stroke-width="2px" d="M2152,277.0 2152,258.6666666666667 2238.0,258.6666666666667 2238.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-18" stroke-width="2px" d="M2152,277.0 2152,258.6666666666667 2238.0,258.6666666666667 2238.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-18" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-18" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2152,279.0 L2148,271.0 2156,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-19" stroke-width="2px" d="M1932,277.0 1932,222.0 2244.0,222.0 2244.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-19" stroke-width="2px" d="M1932,277.0 1932,222.0 2244.0,222.0 2244.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-19" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nmod</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-19" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nmod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2244.0,279.0 L2248.0,271.0 2240.0,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-20" stroke-width="2px" d="M2262,277.0 2262,258.6666666666667 2348.0,258.6666666666667 2348.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-20" stroke-width="2px" d="M2262,277.0 2262,258.6666666666667 2348.0,258.6666666666667 2348.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-20" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-20" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2348.0,279.0 L2352.0,271.0 2344.0,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-21" stroke-width="2px" d="M722,277.0 722,185.33333333333331 2470.0,185.33333333333331 2470.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-21" stroke-width="2px" d="M722,277.0 722,185.33333333333331 2470.0,185.33333333333331 2470.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-21" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">advcl</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-21" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">advcl</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2470.0,279.0 L2474.0,271.0 2466.0,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-22" stroke-width="2px" d="M2592,277.0 2592,240.33333333333334 2791.0,240.33333333333334 2791.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-22" stroke-width="2px" d="M2592,277.0 2592,240.33333333333334 2791.0,240.33333333333334 2791.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-22" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-22" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2592,279.0 L2588,271.0 2596,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-23" stroke-width="2px" d="M2702,277.0 2702,258.6666666666667 2788.0,258.6666666666667 2788.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-23" stroke-width="2px" d="M2702,277.0 2702,258.6666666666667 2788.0,258.6666666666667 2788.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-23" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">det</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-23" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">det</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2702,279.0 L2698,271.0 2706,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-24" stroke-width="2px" d="M2482,277.0 2482,222.0 2794.0,222.0 2794.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-24" stroke-width="2px" d="M2482,277.0 2482,222.0 2794.0,222.0 2794.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-24" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-24" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2794.0,279.0 L2798.0,271.0 2790.0,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-25" stroke-width="2px" d="M2922,277.0 2922,258.6666666666667 3008.0,258.6666666666667 3008.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-25" stroke-width="2px" d="M2922,277.0 2922,258.6666666666667 3008.0,258.6666666666667 3008.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-25" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-25" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M2922,279.0 L2918,271.0 2926,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-26" stroke-width="2px" d="M2812,277.0 2812,240.33333333333334 3011.0,240.33333333333334 3011.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-26" stroke-width="2px" d="M2812,277.0 2812,240.33333333333334 3011.0,240.33333333333334 3011.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-26" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nmod</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-26" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nmod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M3011.0,279.0 L3015.0,271.0 3007.0,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-27" stroke-width="2px" d="M3142,277.0 3142,222.0 3454.0,222.0 3454.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-27" stroke-width="2px" d="M3142,277.0 3142,222.0 3454.0,222.0 3454.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-27" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-27" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M3142,279.0 L3138,271.0 3146,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-28" stroke-width="2px" d="M3252,277.0 3252,240.33333333333334 3451.0,240.33333333333334 3451.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-28" stroke-width="2px" d="M3252,277.0 3252,240.33333333333334 3451.0,240.33333333333334 3451.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-28" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">det</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-28" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">det</textPath>
     </text>
     <path class="displacy-arrowhead" d="M3252,279.0 L3248,271.0 3256,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-29" stroke-width="2px" d="M3362,277.0 3362,258.6666666666667 3448.0,258.6666666666667 3448.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-29" stroke-width="2px" d="M3362,277.0 3362,258.6666666666667 3448.0,258.6666666666667 3448.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-29" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-29" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M3362,279.0 L3358,271.0 3366,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-30" stroke-width="2px" d="M2482,277.0 2482,203.66666666666669 3457.0,203.66666666666669 3457.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-30" stroke-width="2px" d="M2482,277.0 2482,203.66666666666669 3457.0,203.66666666666669 3457.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-30" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-30" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl</textPath>
     </text>
     <path class="displacy-arrowhead" d="M3457.0,279.0 L3461.0,271.0 3453.0,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-31" stroke-width="2px" d="M3582,277.0 3582,240.33333333333334 3781.0,240.33333333333334 3781.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-31" stroke-width="2px" d="M3582,277.0 3582,240.33333333333334 3781.0,240.33333333333334 3781.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-31" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">mark</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-31" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">mark</textPath>
     </text>
     <path class="displacy-arrowhead" d="M3582,279.0 L3578,271.0 3586,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-32" stroke-width="2px" d="M3692,277.0 3692,258.6666666666667 3778.0,258.6666666666667 3778.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-32" stroke-width="2px" d="M3692,277.0 3692,258.6666666666667 3778.0,258.6666666666667 3778.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-32" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">aux:pass</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-32" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">aux:pass</textPath>
     </text>
     <path class="displacy-arrowhead" d="M3692,279.0 L3688,271.0 3696,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-33" stroke-width="2px" d="M2482,277.0 2482,185.33333333333331 3790.0,185.33333333333331 3790.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-33" stroke-width="2px" d="M2482,277.0 2482,185.33333333333331 3790.0,185.33333333333331 3790.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-33" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">advcl</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-33" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">advcl</textPath>
     </text>
     <path class="displacy-arrowhead" d="M3790.0,279.0 L3794.0,271.0 3786.0,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-34" stroke-width="2px" d="M3912,277.0 3912,258.6666666666667 3998.0,258.6666666666667 3998.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-34" stroke-width="2px" d="M3912,277.0 3912,258.6666666666667 3998.0,258.6666666666667 3998.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-34" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-34" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">case</textPath>
     </text>
     <path class="displacy-arrowhead" d="M3912,279.0 L3908,271.0 3916,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-35" stroke-width="2px" d="M3802,277.0 3802,240.33333333333334 4001.0,240.33333333333334 4001.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-35" stroke-width="2px" d="M3802,277.0 3802,240.33333333333334 4001.0,240.33333333333334 4001.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-35" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl:agent</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-35" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">obl:agent</textPath>
     </text>
     <path class="displacy-arrowhead" d="M4001.0,279.0 L4005.0,271.0 3997.0,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-36" stroke-width="2px" d="M4022,277.0 4022,258.6666666666667 4108.0,258.6666666666667 4108.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-36" stroke-width="2px" d="M4022,277.0 4022,258.6666666666667 4108.0,258.6666666666667 4108.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-36" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-36" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">amod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M4108.0,279.0 L4112.0,271.0 4104.0,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-37" stroke-width="2px" d="M4022,277.0 4022,240.33333333333334 4221.0,240.33333333333334 4221.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-37" stroke-width="2px" d="M4022,277.0 4022,240.33333333333334 4221.0,240.33333333333334 4221.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-37" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nmod</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-37" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nmod</textPath>
     </text>
     <path class="displacy-arrowhead" d="M4221.0,279.0 L4225.0,271.0 4217.0,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-38" stroke-width="2px" d="M4352,277.0 4352,258.6666666666667 4438.0,258.6666666666667 4438.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-38" stroke-width="2px" d="M4352,277.0 4352,258.6666666666667 4438.0,258.6666666666667 4438.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-38" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">det</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-38" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">det</textPath>
     </text>
     <path class="displacy-arrowhead" d="M4352,279.0 L4348,271.0 4356,271.0" fill="currentColor"/>
 </g>
 
 <g class="displacy-arrow">
-    <path class="displacy-arc" id="arrow-e6d86200327540a5b9660961b5edb7b1-0-39" stroke-width="2px" d="M3802,277.0 3802,222.0 4444.0,222.0 4444.0,277.0" fill="none" stroke="currentColor"/>
+    <path class="displacy-arc" id="arrow-36fe9d0b7b4246f4b48eab65836f0084-0-39" stroke-width="2px" d="M3802,277.0 3802,222.0 4444.0,222.0 4444.0,277.0" fill="none" stroke="currentColor"/>
     <text dy="1.25em" style="font-size: 0.8em; letter-spacing: 1px">
-        <textPath xlink:href="#arrow-e6d86200327540a5b9660961b5edb7b1-0-39" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nsubj:pass</textPath>
+        <textPath xlink:href="#arrow-36fe9d0b7b4246f4b48eab65836f0084-0-39" class="displacy-label" startOffset="50%" side="left" fill="currentColor" text-anchor="middle">nsubj:pass</textPath>
     </text>
     <path class="displacy-arrowhead" d="M4444.0,279.0 L4448.0,271.0 4440.0,271.0" fill="currentColor"/>
 </g>
 </svg></div>
-   </div>
-  </div>
-  <p class="muted" style="margin-top:10px">Scroll sideways inside the box to see the full tree.</p>
- </div>
-</section>
-
-<!-- 7. Quality -->
-<section class="slide" id="s-quality" data-name="Quality">
- <div class="inner">
-  <p class="kicker">03 · Data quality</p>
-  <h2>Problems we found, and what we did about them</h2>
-  <div class="tbl"><table>
-   <thead><tr><th>Problem</th><th>Example</th><th>Action</th></tr></thead>
-   <tbody>
-    <tr><td>Thousands written with spaces</td><td><code>2 743 357 abitanti</code> → 3 NUM tokens, wrong tree</td><td class="ok">Fixed in <code>preprocess.py</code> (<span id="qNum"></span> numbers joined)</td></tr>
-    <tr><td>Template leftover from the plain-text export</td><td>Torino: <i>nella categoria Gamma -.</i></td><td class="ok">Fixed (pattern removed)</td></tr>
-    <tr><td>IPA / dialect brackets after the city name</td><td><i>Brescia (afi: /ˈbr(ɛ)ʃːa/ … Brèsa)</i></td><td class="ok">Removed at collection time (nested brackets)</td></tr>
-    <tr><td>HTML, menus, duplicate lines</td><td>none found</td><td class="ok">API returns plain text, so the corpus is clean</td></tr>
-    <tr><td>Same opening pattern in every text</td><td><i>X è un comune italiano di N abitanti, capoluogo …</i></td><td class="no">Known bias: inflates <i>comune, capoluogo, abitante</i>. Phase 2: add more article sections</td></tr>
-    <tr><td>Historical / foreign names</td><td><i>Mediolanum, Partenope, Cumani</i></td><td class="no">Model labels them MISC or LOC; kept as they are</td></tr>
-    <tr><td>spaCy's Italian stop list contains content words</td><td><i>città</i> (94 times) is a stop word in spaCy</td><td class="no">Noticed: our search loses <i>città</i>. Phase 2: a custom stop list</td></tr>
-    <tr><td>Lemma &amp; POS errors</td><td><i>suggeriscare</i>, <i>comune</i> = ADJ</td><td class="no">Model limitation; documented</td></tr>
-   </tbody>
-  </table></div>
- </div>
-</section>
-
-<!-- 8. Application -->
-<section class="slide" id="s-app" data-name="Application">
- <div class="inner">
-  <p class="kicker">04 · Application area</p>
-  <h2>A search engine for Italian cities</h2>
-  <div class="grid2">
-   <div>
-    <p><b>Goal:</b> the user asks a question in Italian (<i>“Quale città ha il porto più importante?”</i>) and the system returns the most relevant <b>sentences</b> from the corpus, with the city and the Wikipedia source.</p>
-    <p><b>Why it fits our corpus:</b> short factual texts, one entity (city) per document, rich in names and numbers.</p>
-   </div>
-   <div>
-    <p><b>How it works (Phase 1 prototype):</b></p>
-    <ol class="muted" style="margin-top:0">
-     <li>The query goes through the <b>same preprocessing</b>: lowercase, word → lemma (from the corpus lemma table), stop words removed.</li>
-     <li>Each of the <span id="nSent"></span> sentences is a TF-IDF vector over lemmas.</li>
-     <li>Ranking by <b>cosine similarity</b>; top 5 sentences are shown.</li>
-    </ol>
-   </div>
-  </div>
-  <form class="search" id="searchForm" role="search">
-   <label for="q" class="muted" style="position:absolute;left:-9999px">Search query</label>
-   <input id="q" type="search" placeholder="Scrivi una domanda in italiano…" autocomplete="off" value="università più antica">
-   <button class="btn" type="submit">Cerca</button>
-  </form>
-  <div class="chips" id="chips"></div>
-  <div class="qtrace" id="qtrace"></div>
-  <div class="results" id="results" aria-live="polite"></div>
- </div>
-</section>
-
-<!-- 9. Next -->
-<section class="slide" id="s-next" data-name="Next">
- <div class="inner">
-  <p class="kicker">05 · Status &amp; next steps</p>
-  <h2>Where we are</h2>
-  <div class="grid2">
-   <div>
-    <h3>Phase 1 (done)</h3>
-    <ul class="check">
-     <li>Corpus collected: 20 texts, licence and metadata documented</li>
-     <li>Preprocessing pipeline: cleaning, normalisation, tokenization, lemmas, stop words</li>
-     <li>Linguistic analysis: POS, dependencies, NER, error analysis</li>
-     <li>Application area chosen: search / question answering, with a working prototype</li>
-     <li>Code and notebook on GitHub</li>
-    </ul>
-    <h3>Phase 2 (planned)</h3>
-    <ul class="check">
-     <li class="todo">Grow the corpus (~100 cities, more sections: history, economy, culture)</li>
-     <li class="todo">Better retrieval: word vectors / sentence embeddings, entity-aware ranking</li>
-     <li class="todo">Turn search into a chatbot that answers with one sentence</li>
-     <li class="todo">Evaluate with a set of test questions (precision@k)</li>
-    </ul>
-   </div>
-   <div>
-    <h3>Repository</h3>
-    <p><a id="repoLink" href="https://github.com/Laura-Z-hub/nlp-italian-cities">https://github.com/Laura-Z-hub/nlp-italian-cities</a></p>
-    <div class="files">
-     build_corpus.py <span>collects the corpus via the Wikipedia API</span><br>
-     preprocess.py <span>cleaning, normalisation, lemmas, search index</span><br>
-     NLP_Phase1_Italian.ipynb <span>full analysis notebook</span><br>
-     build_web.py <span>generates this presentation</span><br>
-     corpus/ <span>raw texts</span> · corpus_clean/ · corpus_processed/<br>
-     sources.csv <span>source, URL, licence of each text</span>
-    </div>
-   </div>
   </div>
  </div>
+ <div class="slide-foot"><span>Dependency parsing</span><span>scroll the tree sideways</span></div>
 </section>
+
+<!-- 11 · QUALITY -->
+<section class="slide" data-name="Quality">
+ <p class="eyebrow rise">03 · Data quality</p>
+ <h2 class="rise" style="--d:1">Problems we found, and <em>what we did</em></h2>
+ <div class="qgrid">
+  <div class="qcard rise" style="--d:2"><span class="tag">Fixed</span><h3>Numbers with spaces</h3><p><code>2 743 357</code> was split into 3 tokens. Joined in preprocessing (<b id="qNum"></b> cases).</p></div>
+  <div class="qcard rise" style="--d:3"><span class="tag">Fixed</span><h3>Template leftover</h3><p>Torino: <i>“nella categoria Gamma -.”</i>, a symbol lost in the plain-text export.</p></div>
+  <div class="qcard rise" style="--d:4"><span class="tag">Fixed</span><h3>IPA &amp; dialect brackets</h3><p>Pronunciation after the city name, removed at collection time.</p></div>
+  <div class="qcard rise" style="--d:5"><span class="tag">Clean</span><h3>No HTML or menus</h3><p>The API returns plain text, so there are no tags, menus or duplicate lines.</p></div>
+  <div class="qcard open rise" style="--d:6"><span class="tag">Known bias</span><h3>Same opening</h3><p><i>“X è un comune italiano di N abitanti…”</i> inflates <i>comune, capoluogo</i>.</p></div>
+  <div class="qcard open rise" style="--d:7"><span class="tag">Discovery</span><h3>“città” is a stop word</h3><p>spaCy's Italian stop list contains <i>città</i> (94×). Phase 2: custom stop list.</p></div>
+  <div class="qcard open rise" style="--d:8"><span class="tag">Model limit</span><h3>Lemma &amp; POS errors</h3><p><i>suggeriscare</i>; <i>comune</i> tagged ADJ.</p></div>
+  <div class="qcard open rise" style="--d:9"><span class="tag">Model limit</span><h3>Historical names</h3><p><i>Mediolanum, Partenope, Cumani</i> labelled MISC or LOC.</p></div>
+ </div>
+ <div class="slide-foot"><span>Quality analysis</span><span><span style="color:var(--green)">■</span> solved &nbsp; <span style="color:var(--terra)">■</span> documented, for Phase 2</span></div>
+</section>
+
+<!-- 12 · APPLICATION -->
+<section class="slide dark" data-name="Search demo">
+ <p class="eyebrow rise">04 · Application area · live demo</p>
+ <h2 class="rise" style="--d:1">Ask Italy a <em>question</em></h2>
+ <form class="searchbox rise" style="--d:2" id="searchForm" role="search">
+  <input id="q" type="search" aria-label="Search query" placeholder="Scrivi una domanda in italiano…" autocomplete="off" value="università più antica">
+  <button type="submit">Cerca</button>
+ </form>
+ <div class="qchips rise" style="--d:3" id="chips"></div>
+ <div class="trace" id="qtrace"></div>
+ <div class="results" id="results" aria-live="polite"></div>
+ <div class="slide-foot"><span>Search engine · TF-IDF over lemmas + cosine similarity</span><span id="nSentFoot"></span></div>
+</section>
+
+<!-- 13 · HOW IT WORKS -->
+<section class="slide dark" data-name="How search works">
+ <p class="eyebrow rise">04 · Application area</p>
+ <h2 class="rise" style="--d:1">How the search engine <em>works</em></h2>
+ <p class="sub rise" style="--d:2">The query goes through <b>the same preprocessing</b> as the corpus, so the two are compared lemma to lemma.</p>
+ <div class="g4" style="margin-top:50px">
+  <div class="card rise" style="--d:3"><div class="bignum" style="color:var(--gold);font-size:64px">1</div><h3 style="margin-top:14px">Preprocess</h3><p>Lowercase, word → lemma, stop words removed.<br><code>antica → antico</code></p></div>
+  <div class="card rise" style="--d:4"><div class="bignum" style="color:var(--gold);font-size:64px">2</div><h3 style="margin-top:14px">TF-IDF</h3><p>Each of the <b id="nSent"></b> sentences is a vector. Rare lemmas weigh more.</p></div>
+  <div class="card rise" style="--d:5"><div class="bignum" style="color:var(--gold);font-size:64px">3</div><h3 style="margin-top:14px">Cosine</h3><p>Similarity between the query vector and every sentence vector.</p></div>
+  <div class="card rise" style="--d:6"><div class="bignum" style="color:var(--gold);font-size:64px">4</div><h3 style="margin-top:14px">Rank</h3><p>The best sentences are shown with the city and a link to the Wikipedia source.</p></div>
+ </div>
+ <p class="sub rise" style="--d:7;margin-top:44px;font-size:21px">Why this application: one city per document, short factual sentences, and many named entities, so the answers are easy to check.</p>
+ <div class="slide-foot"><span>Application area</span><span>notebook §9 · index.html</span></div>
+</section>
+
+<!-- 14 · NEXT -->
+<section class="slide" data-name="Next steps">
+ <p class="eyebrow rise">05 · Status &amp; next steps</p>
+ <h2 class="rise" style="--d:1">Phase 1 is <em>done</em>. What comes next</h2>
+ <div class="g3" style="grid-template-columns:1fr 1fr 1.1fr;margin-top:44px;gap:50px">
+  <div class="rise" style="--d:2"><p class="chart-title">Phase 1 · completed</p>
+   <ul class="check"><li>Corpus collected and documented</li><li>Preprocessing pipeline</li><li>POS, dependencies, NER and error analysis</li><li>Application chosen, with a prototype</li><li>Code on GitHub</li></ul></div>
+  <div class="rise" style="--d:3"><p class="chart-title">Phase 2 · planned</p>
+   <ul class="check todo"><li>~100 cities, more article sections</li><li>Custom stop list</li><li>Word vectors / sentence embeddings</li><li>Chatbot interface</li><li>Evaluation with test questions</li></ul></div>
+  <div class="rise" style="--d:4"><p class="chart-title">Repository</p>
+   <a class="repo" href="https://github.com/Laura-Z-hub/nlp-italian-cities">github.com/Laura-Z-hub/nlp-italian-cities</a>
+   <div class="files">build_corpus.py<span>collection</span><br>preprocess.py<span>preprocessing</span><br>NLP_Phase1_Italian.ipynb<span>analysis</span><br>build_web.py<span>this presentation</span><br>corpus/ · corpus_clean/ · corpus_processed/<br>sources.csv<span>licences</span></div></div>
+ </div>
+ <div class="slide-foot"><span>Status</span><span></span></div>
+</section>
+
+<!-- 15 · END -->
+<section class="slide dark" data-name="Thanks">
+ <div class="end">
+  <div class="rise"><span class="flag"><i></i><i></i><i></i></span></div>
+  <h1 class="rise" style="--d:1;margin-top:40px">Grazie<em>!</em></h1>
+  <p class="sub rise" style="--d:2;margin-top:24px;font-size:32px">Questions?</p>
+ </div>
+ <div class="slide-foot"><span>Group 5 · Italian</span><span>NLP Project · Phase 1</span></div>
+</section>
+
+</main>
+
+<nav class="chrome" aria-label="Slide controls">
+ <button type="button" id="prev" aria-label="Previous slide">←</button>
+ <button type="button" id="next" aria-label="Next slide">→</button>
+ <span class="count" id="count"></span>
+ <button type="button" id="fs">⛶ Full screen (F)</button>
+</nav>
 
 <script>
 const S = {
@@ -2132,58 +2231,68 @@ document.addEventListener('pointermove', e => {
   if (!t) { tip.style.opacity = 0; return; }
   tip.innerHTML = t.dataset.tip;
   const w = tip.offsetWidth, h = tip.offsetHeight;
-  tip.style.left = Math.min(e.clientX + 14, innerWidth - w - 8) + 'px';
-  tip.style.top = Math.max(8, e.clientY - h - 12) + 'px';
+  tip.style.left = Math.min(e.clientX + 16, innerWidth - w - 8) + 'px';
+  tip.style.top = Math.max(8, e.clientY - h - 14) + 'px';
   tip.style.opacity = 1;
 });
+
+/* ---------- map of the 20 cities (equirectangular, lon scaled by cos 42°) ---------- */
+const CITY = {Roma:[12.50,41.90],Milano:[9.19,45.46],Napoli:[14.27,40.85],Torino:[7.69,45.07],Palermo:[13.36,38.12],Genova:[8.93,44.41],Bologna:[11.34,44.49],Firenze:[11.26,43.77],Bari:[16.87,41.12],Catania:[15.09,37.50],Venezia:[12.33,45.44],Verona:[10.99,45.44],Messina:[15.55,38.19],Padova:[11.88,45.41],Trieste:[13.78,45.65],Brescia:[10.21,45.54],Parma:[10.33,44.80],Taranto:[17.24,40.47],Modena:[10.93,44.65],'Reggio Calabria':[15.65,38.11]};
+const MINOR = new Set(['Brescia','Verona','Padova','Parma','Modena','Messina']);
+(() => {
+  const k = Math.cos(42 * Math.PI / 180), P = ([lon, lat]) => [(lon - 6.8) * k, 46.3 - lat];
+  const svg = $('#map'); svg.setAttribute('viewBox', '0 0 8.6 9.3');
+  const order = ['Torino','Milano','Brescia','Verona','Padova','Venezia','Trieste','Genova','Parma','Modena','Bologna','Firenze','Roma','Napoli','Bari','Taranto','Reggio Calabria','Messina','Catania','Palermo'];
+  const pts = order.map(c => P(CITY[c]));
+  let html = `<path class="link" d="M${pts.map(p => p.join(',')).join(' L')}"/>`;
+  S.per_text.forEach((p, i) => {
+    const [x, y] = P(CITY[p.title]); const r = 0.05 + (p.words - 240) / 60 * 0.03;
+    const right = ['Torino','Genova','Palermo','Milano'].includes(p.title) ? false : true;
+    html += `<g class="city${MINOR.has(p.title) ? ' minor' : ''}" style="--i:${i}" data-tip="<b>${p.title}</b><br>${p.file} · ${p.words} words · ${p.sentences} sentences">
+      <circle class="halo" cx="${x}" cy="${y}" r="${r * 2.6}"/><circle class="core" cx="${x}" cy="${y}" r="${r}"/>
+      <text x="${right ? x + 0.16 : x - 0.16}" y="${y + 0.08}" text-anchor="${right ? 'start' : 'end'}">${p.title}</text></g>`;
+  });
+  svg.innerHTML = html;
+})();
 
 /* ---------- bar lists ---------- */
 function bars(el, rows, tipFn) {
   const max = Math.max(...rows.map(r => r[1]));
   el.innerHTML = rows.map((r, i) =>
-    `<div class="bar" data-tip="${esc(tipFn ? tipFn(r, i) : `<b>${esc(r[0])}</b>: ${fmt(r[1])}`)}">
-      <span class="l">${esc(r[0])}</span>
-      <span class="t"><span class="f" style="width:${(r[1] / max * 100).toFixed(1)}%"></span></span>
-      <span class="v">${fmt(r[1])}</span></div>`).join('');
+    `<div class="bar" style="--i:${i};--w:${(r[1] / max * 100).toFixed(1)}%" data-tip="${esc(tipFn ? tipFn(r) : `<b>${esc(r[0])}</b>: ${fmt(r[1])}`)}">
+      <span class="l">${esc(r[0])}</span><span class="t"><span class="f"></span></span><span class="v">${fmt(r[1])}</span></div>`).join('');
 }
 
-/* ---------- corpus ---------- */
-$('#corpusStats').innerHTML = [
-  [S.texts, 'texts (cities)'], [S.raw_words, 'words'], [S.sentences, 'sentences'], [S.unique_forms, 'unique words']
-].map(([n, l]) => `<div class="stat"><b>${fmt(n)}</b><span>${l}</span></div>`).join('');
+/* corpus */
+$('#corpusStats').innerHTML = [[S.texts, 'texts, one per city'], [S.raw_words, 'words'], [S.sentences, 'sentences'], [S.unique_forms, 'unique words']]
+  .map(([n, l], i) => `<div class="card rise" style="--d:${i + 3}"><div class="bignum${i % 2 ? ' t' : ''}">${fmt(n)}</div><div class="biglab">${l}</div></div>`).join('');
 bars($('#wordsBars'), S.per_text.map(p => [p.title, p.words, p]),
-  r => `<b>${esc(r[0])}</b> (${r[2].file})<br>${r[1]} words · ${r[2].paragraphs} paragraphs · ${r[2].sentences} sentences`);
+  r => `<b>${esc(r[0])}</b> · ${r[2].file}<br>${r[1]} words · ${r[2].paragraphs} paragraphs · ${r[2].sentences} sentences`);
 
-/* ---------- pipeline ---------- */
-bars($('#funnel'), [
-  ['All tokens', S.tokens_all], ['Words (alphabetic)', S.tokens_alpha], ['Content words', S.tokens_content],
-  ['Unique forms', S.unique_forms], ['Unique lemmas', S.unique_lemmas]
-], r => `<b>${r[0]}</b>: ${fmt(r[1])}`);
-const pct = Math.round((1 - S.tokens_content / S.tokens_alpha) * 100);
-$('#funnelNote').textContent = `Removing stop words drops ${pct}% of the words; lemmatisation reduces the vocabulary by ${Math.round((1 - S.unique_lemmas / S.unique_forms) * 100)}%.`;
-$('#numBefore').innerHTML = ['2', '743', '357', 'abitanti'].map(t => `<code>${t}</code>`).join(' ');
-$('#numAfter').innerHTML = ['2743357', 'abitanti'].map(t => `<code>${t}</code>`).join(' ');
-const fx = S.fixes;
-$('#fixNote').textContent = `In the whole corpus: ${fx['numbers joined'] || 0} numbers joined, ${fx['template leftovers removed'] || 0} template leftover removed.`;
+/* funnel */
+const F = [['All tokens', S.tokens_all, ''], ['Alphabetic words', S.tokens_alpha, ''], ['Content words', S.tokens_content, ''],
+           ['Unique word forms', S.unique_forms, 't'], ['Unique lemmas', S.unique_lemmas, 't']];
+$('#funnel').innerHTML = F.map(([l, n, c], i) => `<div class="fz ${c}" style="--i:${i};--w:${(n / S.tokens_all * 100 * (c ? 3.2 : 1)).toFixed(1)}%"><div><div class="band">${l}</div></div><div class="num">${fmt(n)}</div></div>`).join('');
+const fx = S.fixes, pct = Math.round((1 - S.tokens_content / S.tokens_alpha) * 100), lem = Math.round((1 - S.unique_lemmas / S.unique_forms) * 100);
+$('#fixNote').innerHTML = `Stop words remove <b>${pct}%</b> of the words. Lemmatisation shrinks the vocabulary by <b>${lem}%</b>. In total, <b>${fx['numbers joined'] || 0}</b> numbers were joined and <b>${fx['template leftovers removed'] || 0}</b> template leftover removed.`;
 $('#qNum').textContent = fx['numbers joined'] || 0;
 
-/* ---------- token example ---------- */
+/* tokens */
 const ex = S.example;
-$('#exSent').textContent = ex.clean;
-$('#exToks').innerHTML = ex.tokens.map(t => {
+$('#exSent').textContent = '“' + ex.clean + '”';
+$('#exToks').innerHTML = ex.tokens.map((t, i) => {
   const cls = !t.alpha ? 'punct' : t.stop ? 'stop' : 'keep';
-  return `<span class="tok ${cls}" data-tip="${esc(`<b>${esc(t.text)}</b><br>POS: ${t.pos}<br>lemma: ${esc(t.lemma)}`)}">${esc(t.text)}<small>${cls === 'keep' ? esc(t.lemma.toLowerCase()) : t.pos}</small></span>`;
+  return `<span class="tok ${cls}" style="--i:${i}" data-tip="${esc(`<b>${esc(t.text)}</b><br>POS: ${t.pos}<br>lemma: ${esc(t.lemma)}`)}">${esc(t.text)}<small>${cls === 'keep' ? esc(t.lemma.toLowerCase()) : t.pos}</small></span>`;
 }).join('');
 $('#exOut').textContent = ex.tokens.filter(t => t.alpha && !t.stop).map(t => t.lemma.toLowerCase()).join(' ');
-$('#uf').textContent = fmt(S.unique_forms); $('#ul').textContent = fmt(S.unique_lemmas);
 
-/* ---------- analysis ---------- */
+/* analysis */
 bars($('#topWords'), S.top_words);
-bars($('#topLemmas'), S.top_lemmas);
-bars($('#posBars'), S.pos);
+bars($('#topLemmas'), S.top_lemmas.slice(0, 10));
+bars($('#posBars'), S.pos.slice(0, 10));
 bars($('#entBars'), S.entities, r => `<b>${r[0]}</b>: ${r[1]}<br>e.g. ${esc((S.entity_examples[r[0]] || []).join(', '))}`);
 
-/* ---------- dependency tabs ---------- */
+/* dependency tabs */
 const tabs = [...document.querySelectorAll('#depTabs button')], panels = [...document.querySelectorAll('#depPanels .panel')];
 tabs.forEach(b => b.addEventListener('click', () => {
   tabs.forEach(x => x.setAttribute('aria-selected', x === b));
@@ -2192,7 +2301,7 @@ tabs.forEach(b => b.addEventListener('click', () => {
 
 /* ---------- search engine (TF-IDF over lemmas, cosine similarity) ---------- */
 const STOP = new Set(IX.stop), F2L = IX.form2lemma, SENTS = IX.sentences, N = SENTS.length;
-$('#nSent').textContent = N;
+$('#nSent').textContent = N; $('#nSentFoot').textContent = N + ' sentences indexed';
 const df = {};
 SENTS.forEach(s => new Set(s.lemmas).forEach(l => df[l] = (df[l] || 0) + 1));
 const idf = l => Math.log((N + 1) / ((df[l] || 0) + 1)) + 1;
@@ -2203,63 +2312,72 @@ function vec(lemmas) {
   return { v, norm: Math.sqrt(norm) || 1 };
 }
 const SV = SENTS.map(s => vec(s.lemmas));
-
 function preprocessQuery(q) {
-  const words = q.toLowerCase().replace(/[’']/g, ' ').split(/[^a-zà-öø-ÿ]+/i).filter(Boolean);
-  return words.map(w => {
-    const lemma = F2L[w] || w;
-    return { w, lemma, stop: STOP.has(w) || STOP.has(lemma) };
-  });
+  return q.toLowerCase().replace(/[’']/g, ' ').split(/[^a-zà-öø-ÿ]+/i).filter(Boolean)
+    .map(w => { const lemma = F2L[w] || w; return { w, lemma, stop: STOP.has(w) || STOP.has(lemma) }; });
 }
 function search(q) {
   const toks = preprocessQuery(q), lem = toks.filter(t => !t.stop).map(t => t.lemma);
-  $('#qtrace').innerHTML = toks.length ? 'Query after preprocessing: ' + toks.map(t =>
-    t.stop ? `<code style="text-decoration:line-through;opacity:.6">${esc(t.w)}</code>` : `<code>${esc(t.w)} → ${esc(t.lemma)}</code>`).join('') : '';
+  $('#qtrace').innerHTML = toks.length ? '<span>Query after preprocessing:</span>' + toks.map(t =>
+    t.stop ? `<code class="s">${esc(t.w)}</code>` : `<code>${esc(t.w)} → ${esc(t.lemma)}</code>`).join('') : '';
   const qv = vec(lem);
   const scored = SV.map((s, i) => {
     let dot = 0; for (const l in qv.v) if (s.v[l]) dot += qv.v[l] * s.v[l];
     return [dot / (qv.norm * s.norm), i];
-  }).filter(x => x[0] > 0).sort((a, b) => b[0] - a[0]).slice(0, 5);
+  }).filter(x => x[0] > 0).sort((a, b) => b[0] - a[0]).slice(0, 4);
   const qset = new Set(lem);
-  $('#results').innerHTML = scored.length ? scored.map(([sc, i]) => {
+  $('#results').innerHTML = scored.length ? scored.map(([sc, i], k) => {
     const s = SENTS[i], d = IX.docs[s.doc];
-    const text = esc(s.text).replace(/[A-Za-zÀ-ÖØ-öø-ÿ]+/g, w => {
-      const l = F2L[w.toLowerCase()] || w.toLowerCase();
-      return qset.has(l) ? `<mark>${w}</mark>` : w;
-    });
-    return `<article class="res"><header><b>${esc(d.title)}</b><span>score ${sc.toFixed(3)} · <a href="${esc(d.url)}" target="_blank" rel="noopener">${s.doc}</a></span></header>${text}</article>`;
-  }).join('') : '<p class="empty">No sentence contains these words. Try other words.</p>';
+    let text = s.text.length > 190 ? s.text.slice(0, 187).replace(/\s\S*$/, '') + ' …' : s.text;
+    text = esc(text).replace(/[A-Za-zÀ-ÖØ-öø-ÿ]+/g, w => qset.has(F2L[w.toLowerCase()] || w.toLowerCase()) ? `<mark>${w}</mark>` : w);
+    return `<article class="res" style="--i:${k}"><div class="city">${esc(d.title)}</div><div class="txt">${text}</div>
+      <div class="sc">${sc.toFixed(3)}<div class="meter"><i style="width:${Math.min(100, sc * 100)}%"></i></div><a href="${esc(d.url)}" target="_blank" rel="noopener">${s.doc}</a></div></article>`;
+  }).join('') : '<p style="color:var(--on-night-2);font-size:20px">No sentence contains these words. Try other words.</p>';
 }
 const examples = ['università più antica', 'porto sul mare', 'patrimonio UNESCO', 'fondata dai Greci', 'faro Lanterna', "prima capitale d'Italia"];
-$('#chips').innerHTML = examples.map(e => `<button class="chip" type="button">${e}</button>`).join('');
-$('#chips').addEventListener('click', e => { if (e.target.matches('.chip')) { $('#q').value = e.target.textContent; search(e.target.textContent); } });
+$('#chips').innerHTML = examples.map(e => `<button class="qchip" type="button">${e}</button>`).join('');
+$('#chips').addEventListener('click', e => { if (e.target.matches('.qchip')) { $('#q').value = e.target.textContent; search(e.target.textContent); } });
 $('#searchForm').addEventListener('submit', e => { e.preventDefault(); search($('#q').value); });
 search($('#q').value);
 
-/* ---------- slide navigation ---------- */
+/* ---------- deck ---------- */
 const slides = [...document.querySelectorAll('.slide')];
-$('#dots').innerHTML = slides.map(s => `<a href="#${s.id}" aria-label="${s.dataset.name}" data-tip="${s.dataset.name}"></a>`).join('');
-const dots = [...document.querySelectorAll('#dots a')];
 let cur = 0;
-const io = new IntersectionObserver(es => es.forEach(e => {
-  if (e.isIntersecting) { cur = slides.indexOf(e.target); dots.forEach((d, i) => d.classList.toggle('on', i === cur)); }
-}), { threshold: 0.4 });
-slides.forEach(s => io.observe(s));
+const flow = () => innerWidth < 760;
+function fit() {
+  document.body.classList.toggle('flow', flow());
+  $('#stage').style.setProperty('--s', Math.min(innerWidth / 1600, innerHeight / 900));
+  if (flow()) slides.forEach(s => s.classList.add('on'));
+  else show(cur, true);
+}
+function show(i, silent) {
+  i = Math.max(0, Math.min(slides.length - 1, i));
+  slides.forEach((s, k) => { s.classList.toggle('on', k === i); s.classList.toggle('back', k < i); });
+  cur = i;
+  $('#count').textContent = String(i + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
+  $('#progress').style.width = ((i + 1) / slides.length * 100) + '%';
+  if (!silent) history.replaceState(null, '', '#' + (i + 1));
+}
 document.addEventListener('keydown', e => {
-  if (e.target.closest('input,textarea,button,[role=tab]') && e.key === ' ') return;
-  if (e.target.matches('input')) return;
-  const next = ['ArrowDown', 'PageDown', ' ', 'ArrowRight'].includes(e.key), prev = ['ArrowUp', 'PageUp', 'ArrowLeft'].includes(e.key);
-  if (!next && !prev) return;
-  e.preventDefault();
-  cur = Math.max(0, Math.min(slides.length - 1, cur + (next ? 1 : -1)));
-  slides[cur].scrollIntoView({ behavior: 'smooth' });
+  if (flow() || e.target.matches('input')) return;
+  if (['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter'].includes(e.key) && !e.target.matches('button')) { e.preventDefault(); show(cur + 1); }
+  else if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); show(cur - 1); }
+  else if (e.key === 'Home') show(0);
+  else if (e.key === 'End') show(slides.length - 1);
+  else if (e.key === 'f' || e.key === 'F') toggleFs();
 });
-
-/* ---------- theme toggle ---------- */
-$('#theme').addEventListener('click', () => {
-  const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
-  r.dataset.theme = dark ? 'light' : 'dark';
-});
+function toggleFs() { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.(); }
+$('#prev').onclick = () => show(cur - 1);
+$('#next').onclick = () => show(cur + 1);
+$('#fs').onclick = toggleFs;
+let wheelLock = 0;
+addEventListener('wheel', e => {
+  if (flow() || e.target.closest('.dep') || Math.abs(e.deltaY) < 30 || Date.now() < wheelLock) return;
+  wheelLock = Date.now() + 700; show(cur + (e.deltaY > 0 ? 1 : -1));
+}, { passive: true });
+cur = Math.max(0, (parseInt(location.hash.slice(1)) || 1) - 1);
+addEventListener('resize', fit);
+fit();
 </script>
 </body>
 </html>
