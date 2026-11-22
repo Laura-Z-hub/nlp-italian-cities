@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Italian Cities Corpus</title>
+<meta name="description" content="NLP project, phase 1: corpus, preprocessing and application area (Group 5, Italian).">
+<style>
+/* Layout: one slide per section, full viewport height, a single reading column.
+   Arrow keys / PageDown / Space move between slides. Works offline (no external files). */
+:root{
+  --bg:#f7f6f2; --surface:#ffffff; --fg:#1b1f1d; --muted:#5d6661; --faint:#8a928d; --line:#dfe2dc;
+  --accent:#0f6b4f; --accent-soft:#e2efe9; --warm:#b5452b; --warm-soft:#f7e6e0;
+  --bar:#1d7a5c; --bar-track:#edf0ec; --code:#eef1ed;
+  --ok:#1f7a3a; --ok-soft:#e4f2e7; --bad:#a8321d; --bad-soft:#f9e5e0;
+  --f-sans: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "Cascadia Mono", Consolas, ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121614; --surface:#1a201d; --fg:#e6ebe8; --muted:#a3ada8; --faint:#78827d; --line:#2c3531;
+  --accent:#5ccaa2; --accent-soft:#183129; --warm:#ee8a6f; --warm-soft:#3a221b;
+  --bar:#4fb891; --bar-track:#232b27; --code:#222a26;
+  --ok:#73d18f; --ok-soft:#183020; --bad:#f2907a; --bad-soft:#3a201a; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#121614; --surface:#1a201d; --fg:#e6ebe8; --muted:#a3ada8; --faint:#78827d; --line:#2c3531;
+  --accent:#5ccaa2; --accent-soft:#183129; --warm:#ee8a6f; --warm-soft:#3a221b;
+  --bar:#4fb891; --bar-track:#232b27; --code:#222a26;
+  --ok:#73d18f; --ok-soft:#183020; --bad:#f2907a; --bad-soft:#3a201a; color-scheme:dark }
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-sans);font-size:17px;line-height:1.6}
+.slide{min-height:100vh;padding:72px max(16px,env(safe-area-inset-left,0px)) 72px;border-bottom:1px solid var(--line);display:flex;align-items:center}
+.inner{width:100%;max-width:1060px;margin:0 auto;min-width:0}
+.kicker{font-family:var(--f-mono);font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+h1{font-size:clamp(36px,6vw,64px);line-height:1.05;margin:0 0 18px;letter-spacing:-.02em;text-wrap:balance}
+h2{font-size:clamp(28px,4vw,40px);line-height:1.15;margin:0 0 14px;letter-spacing:-.01em;text-wrap:balance}
+h3{font-size:18px;margin:26px 0 10px}
+p{margin:0 0 14px;max-width:70ch}
+.lead{font-size:clamp(18px,2.2vw,22px);color:var(--muted);max-width:60ch}
+.muted{color:var(--muted)}
+a{color:var(--accent)}
+code{font-family:var(--f-mono);font-size:.86em;background:var(--code);padding:1px 6px;border-radius:4px}
+.flag{display:flex;height:6px;width:120px;border-radius:3px;overflow:hidden;margin-bottom:28px}
+.flag i{flex:1}.flag i:nth-child(1){background:#1f8a4c}.flag i:nth-child(2){background:#f4f4f0;border-block:1px solid var(--line)}.flag i:nth-child(3){background:#c8352b}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 20px;min-width:0}
+.card h3{margin-top:0}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:26px 0}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.stat b{display:block;font-size:clamp(26px,3.4vw,38px);line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.stat span{font-size:14px;color:var(--muted)}
+.agenda{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:0;margin:26px 0 0;list-style:none;counter-reset:a}
+.agenda li{counter-increment:a;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:15px}
+.agenda li::before{content:counter(a,decimal-leading-zero);display:block;font-family:var(--f-mono);font-size:12px;color:var(--accent)}
+.agenda a{color:var(--fg);text-decoration:none}.agenda a:hover{color:var(--accent)}
+
+/* bar lists */
+.bars{display:grid;gap:4px;margin:8px 0}
+.bar{display:grid;grid-template-columns:var(--lab,130px) minmax(0,1fr) 52px;align-items:center;gap:10px;font-size:14px;padding:2px 0;border-radius:4px}
+.bar:hover{background:var(--accent-soft)}
+.bar .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .t{height:14px;background:var(--bar-track);border-radius:0 4px 4px 0;position:relative}
+.bar .f{position:absolute;inset:0 auto 0 0;background:var(--bar);border-radius:0 4px 4px 0;min-width:2px}
+.bar .v{font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums;text-align:right;color:var(--muted)}
+.bars.big .bar{font-size:15px}.bars.big .t{height:22px}
+#tip{position:fixed;pointer-events:none;z-index:9;background:var(--fg);color:var(--bg);font-size:13px;line-height:1.4;padding:7px 10px;border-radius:6px;max-width:260px;opacity:0;transition:opacity .1s}
+
+/* pipeline */
+.pipe{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:22px 0;counter-reset:p}
+.step{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--accent);border-radius:8px;padding:12px 14px;font-size:14px;position:relative;counter-increment:p}
+.step b{display:block;font-size:15px;margin-bottom:4px}
+.step b::before{content:counter(p) ". ";color:var(--accent)}
+.step ul{margin:0;padding-left:16px;color:var(--muted)}
+.step:not(:last-child)::after{content:"→";position:absolute;right:-12px;top:44%;color:var(--faint);font-size:16px}
+
+/* tokens */
+.toks{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.tok{display:inline-flex;flex-direction:column;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:4px 8px;font-size:15px;line-height:1.25}
+.tok small{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.tok.keep{border-color:var(--accent);background:var(--accent-soft)}
+.tok.stop{color:var(--faint);text-decoration:line-through;text-decoration-color:var(--faint)}
+.tok.punct{color:var(--faint);border-style:dashed}
+.tok.bad{border-color:var(--warm);background:var(--warm-soft)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:1px solid var(--line)}
+.legend .k::before{background:var(--accent-soft);border-color:var(--accent)}
+.legend .s::before{background:var(--surface)}
+.legend .p::before{border-style:dashed}
+.before-after{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.ba{border-radius:8px;padding:12px 14px;font-size:15px}
+.ba.x{background:var(--bad-soft)}.ba.y{background:var(--ok-soft)}
+.ba b{display:block;font-size:12px;font-family:var(--f-mono);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+
+/* tables */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:14px 0}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:none}
+th{font-weight:600;font-size:13px;color:var(--muted);background:var(--bg)}
+td.ok{color:var(--ok)}td.no{color:var(--bad)}
+.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--f-mono)}
+
+/* dependency trees */
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 10px}
+.tabs button,.chip{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:6px 14px;border-radius:999px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.tabs button:focus-visible,.chip:focus-visible,input:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dep{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:6px}
+.dep svg{color:var(--fg)!important;background:transparent!important;display:block}
+.verdict{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+.verdict div{border-radius:8px;padding:10px 14px;font-size:15px}
+.verdict .y{background:var(--ok-soft)}.verdict .x{background:var(--bad-soft)}
+.sent{font-style:italic;color:var(--muted)}
+
+/* search demo */
+.search{display:flex;gap:10px;margin:16px 0 10px}
+.search input{flex:1;min-width:0;font:inherit;font-size:18px;padding:12px 16px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg)}
+.btn{font:inherit;font-weight:600;border:0;background:var(--accent);color:var(--bg);padding:0 22px;border-radius:10px;cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.qtrace{font-size:14px;color:var(--muted);margin:14px 0 6px;min-height:22px}
+.qtrace code{margin-right:4px}
+.results{display:grid;gap:10px;margin-top:6px}
+.res{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+.res header{display:flex;justify-content:space-between;gap:10px;font-size:14px;color:var(--muted);margin-bottom:4px}
+.res header b{color:var(--fg);font-size:15px}
+.res mark{background:var(--warm-soft);color:inherit;border-radius:3px;padding:0 2px}
+.empty{color:var(--muted);font-style:italic}
+
+.check{list-style:none;padding:0;margin:14px 0;display:grid;gap:8px}
+.check li{padding-left:30px;position:relative}
+.check li::before{content:"✓";position:absolute;left:0;top:0;width:20px;height:20px;border-radius:50%;background:var(--ok-soft);color:var(--ok);font-size:13px;display:grid;place-items:center;font-weight:700}
+.check li.todo::before{content:"→";background:var(--accent-soft);color:var(--accent)}
+.files{font-family:var(--f-mono);font-size:14px;line-height:1.8}
+.files span{color:var(--muted);font-family:var(--f-sans)}
+
+nav.dots{position:fixed;right:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:9px;z-index:5}
+nav.dots a{width:10px;height:10px;border-radius:50%;background:var(--line);display:block}
+nav.dots a.on{background:var(--accent);transform:scale(1.25)}
+.theme{position:fixed;right:16px;top:14px;z-index:6;font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:5px 12px;cursor:pointer}
+
+@media (max-width:860px){
+  .grid2,.before-after,.verdict{grid-template-columns:minmax(0,1fr)}
+  .grid3,.agenda{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pipe{grid-template-columns:minmax(0,1fr)}
+  .step:not(:last-child)::after{content:"↓";right:auto;left:50%;top:auto;bottom:-17px}
+  nav.dots{display:none}
+  .slide{min-height:auto;padding-block:56px}
+}
+@media (max-width:520px){.grid3,.agenda{grid-template-columns:minmax(0,1fr)} .search{flex-direction:column}.btn{padding:12px}}
+@media print{.slide{min-height:auto;break-after:page}nav.dots,.theme{display:none}}
+</style>
+</head>
+<body>
+<button class="theme" id="theme" type="button" aria-label="Toggle dark mode">◐ Theme</button>
+<nav class="dots" id="dots" aria-label="Slides"></nav>
+<div id="tip" role="tooltip"></div>
+
+<!-- 1. Title -->
+<section class="slide" id="s-title" data-name="Title">
+ <div class="inner">
+  <div class="flag" aria-hidden="true"><i></i><i></i><i></i></div>
+  <p class="kicker">NLP project · Phase 1 · Group 5 – Italian</p>
+  <h1>Searching Italian cities with NLP</h1>
+  <p class="lead">An Italian corpus of 20 city descriptions from Wikipedia, preprocessed with spaCy (<code>it_core_news_md</code>), as the base for a <b>search engine / question-answering system</b>.</p>
+  <ol class="agenda">
+   <li><a href="#s-corpus">Corpus collection</a></li>
+   <li><a href="#s-pipeline">Preprocessing pipeline</a></li>
+   <li><a href="#s-analysis">What the data looks like</a></li>
+   <li><a href="#s-ling">Linguistic analysis &amp; errors</a></li>
+   <li><a href="#s-app">Application area + live demo</a></li>
+   <li><a href="#s-next">Repository &amp; next steps</a></li>
+  </ol>
+ </div>
+</section>
+
+<!-- 2. Corpus -->
+<section class="slide" id="s-corpus" data-name="Corpus">
+ <div class="inner">
+  <p class="kicker">01 · Corpus collection</p>
+  <h2>20 Italian cities, taken from it.wikipedia.org</h2>
+  <div class="stats" id="corpusStats"></div>
+  <div class="grid2">
+   <div>
+    <h3>How we built it</h3>
+    <ul>
+     <li><b>Source:</b> the opening paragraphs of the Italian Wikipedia article for each of the 20 largest Italian cities.</li>
+     <li><b>Method:</b> <code>build_corpus.py</code> calls the official <b>MediaWiki API</b> (plain-text extracts, no HTML scraping), with retry on rate limits.</li>
+     <li><b>Rules:</b> whole paragraphs, 220–300 words per text, headings removed, IPA/dialect brackets after the city name removed.</li>
+     <li><b>Format:</b> <code>corpus/text01.txt … text20.txt</code>, UTF-8, one paragraph per line.</li>
+     <li><b>Licence:</b> CC BY-SA 4.0. Title, URL, access date and word count for each text are in <code>sources.csv</code>.</li>
+    </ul>
+    <p class="muted">Why this topic: the texts are factual, well-written, uniform in style and full of named entities (places, people, dates), which suits a search / QA application.</p>
+   </div>
+   <div>
+    <h3>Words per text</h3>
+    <div class="bars" id="wordsBars" style="--lab:120px"></div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 3. Pipeline -->
+<section class="slide" id="s-pipeline" data-name="Pipeline">
+ <div class="inner">
+  <p class="kicker">02 · Preprocessing</p>
+  <h2>From raw Wikipedia text to clean lemmas</h2>
+  <p class="lead">Script: <code>preprocess.py</code>. The output is stored in <code>corpus_clean/</code> (clean sentences) and <code>corpus_processed/</code> (content lemmas, one sentence per line).</p>
+  <div class="pipe">
+   <div class="step"><b>Cleaning</b><ul><li>UTF-8 check, no mojibake</li><li>’ → ' , nbsp → space</li><li>remove template leftovers</li></ul></div>
+   <div class="step"><b>Normalisation</b><ul><li>join numbers: <code>2 743 357</code> → <code>2743357</code></li><li>collapse whitespace</li></ul></div>
+   <div class="step"><b>Segmentation</b><ul><li>sentence splitting</li><li>tokenization (elisions <code>dell'</code>, <code>l'</code>)</li></ul></div>
+   <div class="step"><b>Annotation</b><ul><li>POS tags</li><li>lemmas</li><li>dependencies, NER</li></ul></div>
+   <div class="step"><b>Filtering</b><ul><li>lowercase</li><li>drop punctuation &amp; numbers</li><li>drop stop words → lemmas</li></ul></div>
+  </div>
+  <div class="grid2">
+   <div>
+    <h3>Corpus size after each step</h3>
+    <div class="bars big" id="funnel" style="--lab:150px"></div>
+    <p class="muted" id="funnelNote"></p>
+   </div>
+   <div>
+    <h3>Normalisation example</h3>
+    <div class="before-after">
+     <div class="ba x"><b>Before: 3 tokens</b><span id="numBefore"></span></div>
+     <div class="ba y"><b>After: 1 token</b><span id="numAfter"></span></div>
+    </div>
+    <p class="muted" id="fixNote" style="margin-top:12px"></p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 4. Token example -->
+<section class="slide" id="s-tokens" data-name="Tokens">
+ <div class="inner">
+  <p class="kicker">02 · Preprocessing, one sentence</p>
+  <h2>What happens to every token</h2>
+  <p class="sent" id="exSent"></p>
+  <div class="legend"><span class="k">kept → lemma (below)</span><span class="s">stop word (removed)</span><span class="p">punctuation / number (removed)</span></div>
+  <div class="toks" id="exToks"></div>
+  <h3>Result in <code>corpus_processed/text01.txt</code></h3>
+  <p><code id="exOut"></code></p>
+  <div class="grid3" style="margin-top:20px">
+   <div class="card"><h3>Lowercase + lemma</h3><p class="muted">Forms such as <i>abitanti</i> and <i>abitante</i> become one lemma, <i>abitante</i>, so the vocabulary shrinks from <b id="uf"></b> forms to <b id="ul"></b> lemmas.</p></div>
+   <div class="card"><h3>Italian elisions</h3><p class="muted"><i>dell'omonima</i> is split into <code>dell'</code> + <code>omonima</code>, with lemmas <i>di il</i> + <i>omonimo</i>. Articulated prepositions (<i>del, nel</i>) stay one token.</p></div>
+   <div class="card"><h3>Why remove stop words?</h3><p class="muted">9 of the 10 most frequent words are function words. They say nothing about which city a sentence describes, so we drop them for search.</p></div>
+  </div>
+ </div>
+</section>
+
+<!-- 5. Analysis -->
+<section class="slide" id="s-analysis" data-name="Analysis">
+ <div class="inner">
+  <p class="kicker">03 · Corpus analysis</p>
+  <h2>Stop words hide the topic, lemmas show it</h2>
+  <div class="grid2">
+   <div><h3>Top 10 words (raw, lowercase)</h3><div class="bars" id="topWords" style="--lab:90px"></div></div>
+   <div><h3>Top 15 content lemmas</h3><div class="bars" id="topLemmas" style="--lab:120px"></div></div>
+  </div>
+  <div class="grid2" style="margin-top:12px">
+   <div><h3>Parts of speech</h3><div class="bars" id="posBars" style="--lab:70px"></div></div>
+   <div><h3>Named entities by label</h3><div class="bars big" id="entBars" style="--lab:70px"></div>
+    <p class="muted">The Italian model only has <b>LOC, PER, ORG, MISC</b>. There is no DATE label, so <i>VIII secolo a.C.</i> becomes MISC or is not found at all.</p></div>
+  </div>
+ </div>
+</section>
+
+<!-- 6. Linguistic analysis -->
+<section class="slide" id="s-ling" data-name="Linguistics">
+ <div class="inner">
+  <p class="kicker">03 · Dependencies &amp; entities (displaCy)</p>
+  <h2>Three corpus sentences: what spaCy gets right and wrong</h2>
+  <div class="tabs" role="tablist" id="depTabs">
+   <button role="tab" aria-selected="true" data-i="0">1 · Roma</button>
+   <button role="tab" aria-selected="false" data-i="1">2 · Napoli</button>
+   <button role="tab" aria-selected="false" data-i="2">3 · Verona</button>
+  </div>
+  <div id="depPanels">
+   <div class="panel">
+    <p class="sent">Roma è un comune italiano di 2 743 357 abitanti, capoluogo dell'omonima città metropolitana e della regione Lazio, nonché capitale della Repubblica Italiana.</p>
+    <div class="verdict"><div class="y">✔ <i>Roma, Lazio, Repubblica Italiana</i> found as entities; <i>dell'</i> split and lemmatised as <i>di il</i>.</div>
+    <div class="x">✘ <i>comune</i> tagged ADJ instead of NOUN; the number split into 3 tokens makes <i>abitanti</i> a second <b>nsubj</b>. <b>Our normalisation fixes this.</b></div></div>
+    <div class="dep">__SVG1__</div>
+   </div>
+   <div class="panel" hidden>
+    <p class="sent">Napoli nasce come Partenope, fondata dai Cumani su Pizzofalcone a fine VIII secolo a.C. su base archeologica, sebbene sporadici reperti suggeriscano una datazione più antica.</p>
+    <div class="verdict"><div class="y">✔ <i>Napoli, Partenope, Pizzofalcone</i> = LOC; ROOT <i>nasce</i>; <i>fondata → fondare</i> attached to <i>Partenope</i>.</div>
+    <div class="x">✘ subjunctive <i>suggeriscano</i> gets the non-existent lemma <b>suggeriscare</b>; <i>secolo</i> analysed as <b>obl:agent</b>, but it is a time expression.</div></div>
+    <div class="dep">__SVG2__</div>
+   </div>
+   <div class="panel" hidden>
+    <p class="sent">Di origine preistorica, l'abitato venne rifondato dai Romani all'interno dell'ansa del fiume … quando venne occupato dal re germanico Teodorico il Grande.</p>
+    <div class="verdict"><div class="y">✔ passive with <i>venire</i>: <i>abitato</i> = nsubj:pass, <i>venne</i> = aux:pass, ROOT = <i>rifondato</i>; <i>Teodorico il Grande</i> = PER.</div>
+    <div class="x">✘ <i>Romani</i> (a people) and <i>Impero</i> labelled LOC; <i>Grande</i> becomes a separate subject of <i>occupato</i>.</div></div>
+    <div class="dep">__SVG3__</div>
+   </div>
+  </div>
+  <p class="muted" style="margin-top:10px">Scroll sideways inside the box to see the full tree.</p>
+ </div>
+</section>
+
+<!-- 7. Quality -->
+<section class="slide" id="s-quality" data-name="Quality">
+ <div class="inner">
+  <p class="kicker">03 · Data quality</p>
+  <h2>Problems we found, and what we did about them</h2>
+  <div class="tbl"><table>
+   <thead><tr><th>Problem</th><th>Example</th><th>Action</th></tr></thead>
+   <tbody>
+    <tr><td>Thousands written with spaces</td><td><code>2 743 357 abitanti</code> → 3 NUM tokens, wrong tree</td><td class="ok">Fixed in <code>preprocess.py</code> (<span id="qNum"></span> numbers joined)</td></tr>
+    <tr><td>Template leftover from the plain-text export</td><td>Torino: <i>nella categoria Gamma -.</i></td><td class="ok">Fixed (pattern removed)</td></tr>
+    <tr><td>IPA / dialect brackets after the city name</td><td><i>Brescia (afi: /ˈbr(ɛ)ʃːa/ … Brèsa)</i></td><td class="ok">Removed at collection time (nested brackets)</td></tr>
+    <tr><td>HTML, menus, duplicate lines</td><td>none found</td><td class="ok">API returns plain text, so the corpus is clean</td></tr>
+    <tr><td>Same opening pattern in every text</td><td><i>X è un comune italiano di N abitanti, capoluogo …</i></td><td class="no">Known bias: inflates <i>comune, capoluogo, abitante</i>. Phase 2: add more article sections</td></tr>
+    <tr><td>Historical / foreign names</td><td><i>Mediolanum, Partenope, Cumani</i></td><td class="no">Model labels them MISC or LOC; kept as they are</td></tr>
+    <tr><td>spaCy's Italian stop list contains content words</td><td><i>città</i> (94 times) is a stop word in spaCy</td><td class="no">Noticed: our search loses <i>città</i>. Phase 2: a custom stop list</td></tr>
+    <tr><td>Lemma &amp; POS errors</td><td><i>suggeriscare</i>, <i>comune</i> = ADJ</td><td class="no">Model limitation; documented</td></tr>
+   </tbody>
+  </table></div>
+ </div>
+</section>
+
+<!-- 8. Application -->
+<section class="slide" id="s-app" data-name="Application">
+ <div class="inner">
+  <p class="kicker">04 · Application area</p>
+  <h2>A search engine for Italian cities</h2>
+  <div class="grid2">
+   <div>
+    <p><b>Goal:</b> the user asks a question in Italian (<i>“Quale città ha il porto più importante?”</i>) and the system returns the most relevant <b>sentences</b> from the corpus, with the city and the Wikipedia source.</p>
+    <p><b>Why it fits our corpus:</b> short factual texts, one entity (city) per document, rich in names and numbers.</p>
+   </div>
+   <div>
+    <p><b>How it works (Phase 1 prototype):</b></p>
+    <ol class="muted" style="margin-top:0">
+     <li>The query goes through the <b>same preprocessing</b>: lowercase, word → lemma (from the corpus lemma table), stop words removed.</li>
+     <li>Each of the <span id="nSent"></span> sentences is a TF-IDF vector over lemmas.</li>
+     <li>Ranking by <b>cosine similarity</b>; top 5 sentences are shown.</li>
+    </ol>
+   </div>
+  </div>
+  <form class="search" id="searchForm" role="search">
+   <label for="q" class="muted" style="position:absolute;left:-9999px">Search query</label>
+   <input id="q" type="search" placeholder="Scrivi una domanda in italiano…" autocomplete="off" value="università più antica">
+   <button class="btn" type="submit">Cerca</button>
+  </form>
+  <div class="chips" id="chips"></div>
+  <div class="qtrace" id="qtrace"></div>
+  <div class="results" id="results" aria-live="polite"></div>
+ </div>
+</section>
+
+<!-- 9. Next -->
+<section class="slide" id="s-next" data-name="Next">
+ <div class="inner">
+  <p class="kicker">05 · Status &amp; next steps</p>
+  <h2>Where we are</h2>
+  <div class="grid2">
+   <div>
+    <h3>Phase 1 (done)</h3>
+    <ul class="check">
+     <li>Corpus collected: 20 texts, licence and metadata documented</li>
+     <li>Preprocessing pipeline: cleaning, normalisation, tokenization, lemmas, stop words</li>
+     <li>Linguistic analysis: POS, dependencies, NER, error analysis</li>
+     <li>Application area chosen: search / question answering, with a working prototype</li>
+     <li>Code and notebook on GitHub</li>
+    </ul>
+    <h3>Phase 2 (planned)</h3>
+    <ul class="check">
+     <li class="todo">Grow the corpus (~100 cities, more sections: history, economy, culture)</li>
+     <li class="todo">Better retrieval: word vectors / sentence embeddings, entity-aware ranking</li>
+     <li class="todo">Turn search into a chatbot that answers with one sentence</li>
+     <li class="todo">Evaluate with a set of test questions (precision@k)</li>
+    </ul>
+   </div>
+   <div>
+    <h3>Repository</h3>
+    <p><a id="repoLink" href="__REPO__">__REPO__</a></p>
+    <div class="files">
+     build_corpus.py <span>collects the corpus via the Wikipedia API</span><br>
+     preprocess.py <span>cleaning, normalisation, lemmas, search index</span><br>
+     NLP_Phase1_Italian.ipynb <span>full analysis notebook</span><br>
+     build_web.py <span>generates this presentation</span><br>
+     corpus/ <span>raw texts</span> · corpus_clean/ · corpus_processed/<br>
+     sources.csv <span>source, URL, licence of each text</span>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<script>
+const S = __STATS__;
+const IX = __INDEX__;
+const $ = s => document.querySelector(s);
+const fmt = n => n.toLocaleString('en-US');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- tooltip ---------- */
+const tip = $('#tip');
+document.addEventListener('pointermove', e => {
+  const t = e.target.closest('[data-tip]');
+  if (!t) { tip.style.opacity = 0; return; }
+  tip.innerHTML = t.dataset.tip;
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.min(e.clientX + 14, innerWidth - w - 8) + 'px';
+  tip.style.top = Math.max(8, e.clientY - h - 12) + 'px';
+  tip.style.opacity = 1;
+});
+
+/* ---------- bar lists ---------- */
+function bars(el, rows, tipFn) {
+  const max = Math.max(...rows.map(r => r[1]));
+  el.innerHTML = rows.map((r, i) =>
+    `<div class="bar" data-tip="${esc(tipFn ? tipFn(r, i) : `<b>${esc(r[0])}</b>: ${fmt(r[1])}`)}">
+      <span class="l">${esc(r[0])}</span>
+      <span class="t"><span class="f" style="width:${(r[1] / max * 100).toFixed(1)}%"></span></span>
+      <span class="v">${fmt(r[1])}</span></div>`).join('');
+}
+
+/* ---------- corpus ---------- */
+$('#corpusStats').innerHTML = [
+  [S.texts, 'texts (cities)'], [S.raw_words, 'words'], [S.sentences, 'sentences'], [S.unique_forms, 'unique words']
+].map(([n, l]) => `<div class="stat"><b>${fmt(n)}</b><span>${l}</span></div>`).join('');
+bars($('#wordsBars'), S.per_text.map(p => [p.title, p.words, p]),
+  r => `<b>${esc(r[0])}</b> (${r[2].file})<br>${r[1]} words · ${r[2].paragraphs} paragraphs · ${r[2].sentences} sentences`);
+
+/* ---------- pipeline ---------- */
+bars($('#funnel'), [
+  ['All tokens', S.tokens_all], ['Words (alphabetic)', S.tokens_alpha], ['Content words', S.tokens_content],
+  ['Unique forms', S.unique_forms], ['Unique lemmas', S.unique_lemmas]
+], r => `<b>${r[0]}</b>: ${fmt(r[1])}`);
+const pct = Math.round((1 - S.tokens_content / S.tokens_alpha) * 100);
+$('#funnelNote').textContent = `Removing stop words drops ${pct}% of the words; lemmatisation reduces the vocabulary by ${Math.round((1 - S.unique_lemmas / S.unique_forms) * 100)}%.`;
+$('#numBefore').innerHTML = ['2', '743', '357', 'abitanti'].map(t => `<code>${t}</code>`).join(' ');
+$('#numAfter').innerHTML = ['2743357', 'abitanti'].map(t => `<code>${t}</code>`).join(' ');
+const fx = S.fixes;
+$('#fixNote').textContent = `In the whole corpus: ${fx['numbers joined'] || 0} numbers joined, ${fx['template leftovers removed'] || 0} template leftover removed.`;
+$('#qNum').textContent = fx['numbers joined'] || 0;
+
+/* ---------- token example ---------- */
+const ex = S.example;
+$('#exSent').textContent = ex.clean;
+$('#exToks').innerHTML = ex.tokens.map(t => {
+  const cls = !t.alpha ? 'punct' : t.stop ? 'stop' : 'keep';
+  return `<span class="tok ${cls}" data-tip="${esc(`<b>${esc(t.text)}</b><br>POS: ${t.pos}<br>lemma: ${esc(t.lemma)}`)}">${esc(t.text)}<small>${cls === 'keep' ? esc(t.lemma.toLowerCase()) : t.pos}</small></span>`;
+}).join('');
+$('#exOut').textContent = ex.tokens.filter(t => t.alpha && !t.stop).map(t => t.lemma.toLowerCase()).join(' ');
+$('#uf').textContent = fmt(S.unique_forms); $('#ul').textContent = fmt(S.unique_lemmas);
+
+/* ---------- analysis ---------- */
+bars($('#topWords'), S.top_words);
+bars($('#topLemmas'), S.top_lemmas);
+bars($('#posBars'), S.pos);
+bars($('#entBars'), S.entities, r => `<b>${r[0]}</b>: ${r[1]}<br>e.g. ${esc((S.entity_examples[r[0]] || []).join(', '))}`);
+
+/* ---------- dependency tabs ---------- */
+const tabs = [...document.querySelectorAll('#depTabs button')], panels = [...document.querySelectorAll('#depPanels .panel')];
+tabs.forEach(b => b.addEventListener('click', () => {
+  tabs.forEach(x => x.setAttribute('aria-selected', x === b));
+  panels.forEach((p, i) => p.hidden = i != b.dataset.i);
+}));
+
+/* ---------- search engine (TF-IDF over lemmas, cosine similarity) ---------- */
+const STOP = new Set(IX.stop), F2L = IX.form2lemma, SENTS = IX.sentences, N = SENTS.length;
+$('#nSent').textContent = N;
+const df = {};
+SENTS.forEach(s => new Set(s.lemmas).forEach(l => df[l] = (df[l] || 0) + 1));
+const idf = l => Math.log((N + 1) / ((df[l] || 0) + 1)) + 1;
+function vec(lemmas) {
+  const tf = {}; lemmas.forEach(l => tf[l] = (tf[l] || 0) + 1);
+  const v = {}; let norm = 0;
+  for (const l in tf) { v[l] = tf[l] * idf(l); norm += v[l] ** 2; }
+  return { v, norm: Math.sqrt(norm) || 1 };
+}
+const SV = SENTS.map(s => vec(s.lemmas));
+
+function preprocessQuery(q) {
+  const words = q.toLowerCase().replace(/[’']/g, ' ').split(/[^a-zà-öø-ÿ]+/i).filter(Boolean);
+  return words.map(w => {
+    const lemma = F2L[w] || w;
+    return { w, lemma, stop: STOP.has(w) || STOP.has(lemma) };
+  });
+}
+function search(q) {
+  const toks = preprocessQuery(q), lem = toks.filter(t => !t.stop).map(t => t.lemma);
+  $('#qtrace').innerHTML = toks.length ? 'Query after preprocessing: ' + toks.map(t =>
+    t.stop ? `<code style="text-decoration:line-through;opacity:.6">${esc(t.w)}</code>` : `<code>${esc(t.w)} → ${esc(t.lemma)}</code>`).join('') : '';
+  const qv = vec(lem);
+  const scored = SV.map((s, i) => {
+    let dot = 0; for (const l in qv.v) if (s.v[l]) dot += qv.v[l] * s.v[l];
+    return [dot / (qv.norm * s.norm), i];
+  }).filter(x => x[0] > 0).sort((a, b) => b[0] - a[0]).slice(0, 5);
+  const qset = new Set(lem);
+  $('#results').innerHTML = scored.length ? scored.map(([sc, i]) => {
+    const s = SENTS[i], d = IX.docs[s.doc];
+    const text = esc(s.text).replace(/[A-Za-zÀ-ÖØ-öø-ÿ]+/g, w => {
+      const l = F2L[w.toLowerCase()] || w.toLowerCase();
+      return qset.has(l) ? `<mark>${w}</mark>` : w;
+    });
+    return `<article class="res"><header><b>${esc(d.title)}</b><span>score ${sc.toFixed(3)} · <a href="${esc(d.url)}" target="_blank" rel="noopener">${s.doc}</a></span></header>${text}</article>`;
+  }).join('') : '<p class="empty">No sentence contains these words. Try other words.</p>';
+}
+const examples = ['università più antica', 'porto sul mare', 'patrimonio UNESCO', 'fondata dai Greci', 'faro Lanterna', "prima capitale d'Italia"];
+$('#chips').innerHTML = examples.map(e => `<button class="chip" type="button">${e}</button>`).join('');
+$('#chips').addEventListener('click', e => { if (e.target.matches('.chip')) { $('#q').value = e.target.textContent; search(e.target.textContent); } });
+$('#searchForm').addEventListener('submit', e => { e.preventDefault(); search($('#q').value); });
+search($('#q').value);
+
+/* ---------- slide navigation ---------- */
+const slides = [...document.querySelectorAll('.slide')];
+$('#dots').innerHTML = slides.map(s => `<a href="#${s.id}" aria-label="${s.dataset.name}" data-tip="${s.dataset.name}"></a>`).join('');
+const dots = [...document.querySelectorAll('#dots a')];
+let cur = 0;
+const io = new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) { cur = slides.indexOf(e.target); dots.forEach((d, i) => d.classList.toggle('on', i === cur)); }
+}), { threshold: 0.4 });
+slides.forEach(s => io.observe(s));
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input,textarea,button,[role=tab]') && e.key === ' ') return;
+  if (e.target.matches('input')) return;
+  const next = ['ArrowDown', 'PageDown', ' ', 'ArrowRight'].includes(e.key), prev = ['ArrowUp', 'PageUp', 'ArrowLeft'].includes(e.key);
+  if (!next && !prev) return;
+  e.preventDefault();
+  cur = Math.max(0, Math.min(slides.length - 1, cur + (next ? 1 : -1)));
+  slides[cur].scrollIntoView({ behavior: 'smooth' });
+});
+
+/* ---------- theme toggle ---------- */
+$('#theme').addEventListener('click', () => {
+  const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme = dark ? 'light' : 'dark';
+});
+</script>
+</body>
+</html>
